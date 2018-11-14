@@ -1,0 +1,20 @@
+---
+title: "PUBG Prediction Model"
+author: "Albert Kuo, Athena Chen"
+output: html_document
+---
+
+```{r packages}
+library(pacman) # for loading packages
+p_load(tidyverse, janitor, caret)
+```
+
+# Import and clean data
+
+```{r}
+# Run download_data.sh to download the data
+# Warning: very large datasets! Might want to sample.
+train = read_csv("data/train_V2.csv.zip")
+test = read_csv("data/test_V2.csv.zip")
+```
+
