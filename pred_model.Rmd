@@ -31,7 +31,7 @@ test = read_csv("data/test_V2.csv.zip", n_max = 1000)
 
 ## Variables
 
-Each row in the data contains one player's post-game stats. A description of the data fields is provided in the `pubg_codebook.csv`. 
+Each row in the data contains one player's post-game stats. A description of the data fields is provided in `pubg_codebook.csv`. 
 
 ```{r}
 
