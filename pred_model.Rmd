@@ -1,7 +1,10 @@
 ---
 title: "PUBG Prediction Model"
 author: "Albert Kuo, Athena Chen"
-output: html_document
+output: 
+  html_document:
+    code_folding: "show"
+    toc: TRUE
 ---
 
 ```{r packages, include = F}
@@ -17,11 +20,21 @@ p_load(tidyverse, janitor, caret)
 
 # Data
 
+The data comes from a [Kaggle competition](https://www.kaggle.com/c/pubg-finish-placement-prediction). We are given a training set and a test set.
+
 ```{r import_data}
 # Run download_data.sh to download the data
-# Warning: very large datasets! Might want to sample.
-train = read_csv("data/train_V2.csv.zip")
-test = read_csv("data/test_V2.csv.zip")
+# Warning: Very large datasets. Read 1000 samples.
+train = read_csv("data/train_V2.csv.zip", n_max = 1000)
+test = read_csv("data/test_V2.csv.zip", n_max = 1000)
+```
+
+## Variables
+
+Each row in the data contains one player's post-game stats. A description of the data fields is provided in the `pubg_codebook.csv`. 
+
+```{r}
+
 ```
 
 
