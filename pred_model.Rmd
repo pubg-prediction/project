@@ -20,23 +20,33 @@ p_load(tidyverse, janitor, caret)
 
 # Data
 
-The data comes from a [Kaggle competition](https://www.kaggle.com/c/pubg-finish-placement-prediction). We are given a training set and a test set.
+The data comes from a [Kaggle competition](https://www.kaggle.com/c/pubg-finish-placement-prediction). We are given a training set and a test set. The outcome variable for the test set will not be given to us until the end of the Kaggle competition in Jan. 30th, 2019. Therefore, for the purposes of this project, we will only be using the training set. Within the training set, we will create our own test set. 
 
 ```{r import_data}
 # Run download_data.sh to download the data
-# Warning: Very large datasets. Read 1000 samples.
-train = read_csv("data/train_V2.csv.zip", n_max = 1000)
-test = read_csv("data/test_V2.csv.zip", n_max = 1000)
+# Warning: Very large datasets. Read 10,000 samples first before scaling up.
+raw_dat = read_csv("data/train_V2.csv.zip", n_max = 10000)
 ```
 
 ## Variables
 
-Each row in the data contains one player's post-game stats. A description of the data fields is provided in `pubg_codebook.csv`. 
+Each row in the data contains one player's post-game stats. A description of all data fields is provided in `pubg_codebook.csv`. 
 
-```{r}
+We will focus on the solo game mode. Only about 4% of the data is in this game mode. The outcome variable is `win_place_perc`. 
 
+```{r clean_data}
+# Select solo mode only
+clean_dat = raw_dat %>%
+  clean_names() %>%
+  filter(match_type == "solo")
+
+# Split into train and test set
+train_ind = createDataPartition(y = clean_dat$win_place_perc, p = 0.8, list = F)
+train = clean_dat %>%
+  slice(train_ind)
+test = clean_dat %>%
+  slice(-train_ind)
 ```
-
 
 # Exploratory Data Analysis
 
