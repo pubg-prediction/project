@@ -5,6 +5,7 @@ output:
   html_document:
     code_folding: "show"
     toc: TRUE
+    toc_float: TRUE
 ---
 
 ```{r packages, include = F}
@@ -12,42 +13,48 @@ library(pacman) # for loading packages
 p_load(tidyverse, janitor, caret)
 ```
 
-# Motivation and Overview
+# Overview
+
+## Motivation
+![PUBG Map](./assets/pubg_map.jpg)
 
 Battle royale games have surged in popularity in recent years. The premise of such games is as follows: players are dropped onto a fictional island and fight to be the last person (or team) standing. As they roam around the island, they find weapons and items crucial for their survival.
 
 We are interested in building a predition model for the popular battle royale game PUBG (PlayerUnknown's Battlegrounds). In the process of doing so, we aim to better understand whether some strategies work better than others. Our analysis and results could thus be of high interest for the gaming community.
 
-# Related Work
+## Related Work
 
 This project was inspired by a [Kaggle competition](https://www.kaggle.com/c/pubg-finish-placement-prediction). In the competition, we are asked to "predict final placement from in-game stats and initial player ratings." 
 
-# Initial Questions
+## Initial Questions
 
 First, we want to investigate how well we can predict a player's placement based on their in-game actions. Exploring this question can then provide insight into how different playing styles compare. We would like to be able to build a model that accurately predicts a player’s game performance, but also allows us to draw inferences about whether certain playing styles are more successful. 
 
 # Data
 
-The data comes from the Kaggle competition. We are given a training set and a test set. The outcome variable for the test set will not be given to us until the end of the Kaggle competition in Jan. 30th, 2019. Therefore, for the purposes of this project, we will only be using the provided training set. Within the training set, we will create our own test set. 
+The data comes from the Kaggle competition. To download the data, join the Kaggle competition and run the shell script `download_data.sh`. 
+
+Note: We will need to provide a direct download link for the TA.
 
 ```{r import_data}
-# Run download_data.sh to download the data
 # Warning: Very large datasets. Read 10,000 samples first before scaling up.
 raw_dat = read_csv("data/train_V2.csv.zip", n_max = 10000)
 ```
 
 ## Variables
 
-Each row in the data contains one player's post-game stats. A description of all data fields is provided in `pubg_codebook.csv`. 
-
-We will focus on the solo game mode. Only about 4% of the data is in this game mode. The outcome variable is `win_place_perc`. 
+Each row in the data contains one player's post-game stats. A description of all data fields is provided in `pubg_codebook.csv`. We will focus on the solo game mode. Only about 4% of the data is in this game mode. The outcome variable we are trying to predict is `win_place_perc`. 
 
 ```{r clean_data}
 # Select solo mode only
 clean_dat = raw_dat %>%
   clean_names() %>%
   filter(match_type == "solo")
+```
 
+We are given a training set and a test set. The outcome variable for the test set will not be given to us until the end of the Kaggle competition in Jan. 30th, 2019. Therefore, for the purposes of this project, we will only be using the provided training set. Within the training set, we will create our own training and test set. 
+
+```{r train_test_split}
 # Split into train and test set
 train_ind = createDataPartition(y = clean_dat$win_place_perc, p = 0.8, list = F)
 train = clean_dat %>%
