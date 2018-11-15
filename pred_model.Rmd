@@ -14,13 +14,21 @@ p_load(tidyverse, janitor, caret)
 
 # Motivation and Overview
 
+Battle royale games have surged in popularity in recent years. The premise of such games is as follows: players are dropped onto a fictional island and fight to be the last person (or team) standing. As they roam around the island, they find weapons and items crucial for their survival.
+
+We are interested in building a predition model for the popular battle royale game PUBG (PlayerUnknown's Battlegrounds). In the process of doing so, we aim to better understand whether some strategies work better than others. Our analysis and results could thus be of high interest for the gaming community.
+
 # Related Work
+
+This project was inspired by a [Kaggle competition](https://www.kaggle.com/c/pubg-finish-placement-prediction). In the competition, we are asked to "predict final placement from in-game stats and initial player ratings." 
 
 # Initial Questions
 
+First, we want to investigate how well we can predict a player's placement based on their in-game actions. Exploring this question can then provide insight into how different playing styles compare. We would like to be able to build a model that accurately predicts a player’s game performance, but also allows us to draw inferences about whether certain playing styles are more successful. 
+
 # Data
 
-The data comes from a [Kaggle competition](https://www.kaggle.com/c/pubg-finish-placement-prediction). We are given a training set and a test set. The outcome variable for the test set will not be given to us until the end of the Kaggle competition in Jan. 30th, 2019. Therefore, for the purposes of this project, we will only be using the training set. Within the training set, we will create our own test set. 
+The data comes from the Kaggle competition. We are given a training set and a test set. The outcome variable for the test set will not be given to us until the end of the Kaggle competition in Jan. 30th, 2019. Therefore, for the purposes of this project, we will only be using the provided training set. Within the training set, we will create our own test set. 
 
 ```{r import_data}
 # Run download_data.sh to download the data
