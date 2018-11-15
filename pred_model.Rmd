@@ -14,12 +14,19 @@ p_load(tidyverse, janitor, caret)
 
 # Overview
 
+<figure>
+  <img src="https://media.giphy.com/media/xT0xeHi1rHNKi8j4Ck/giphy.gif" alt="sniper.gif" width="400"/>
+  <img src="./assets/pubg_map.jpg" alt="pubg_map.jpg" width="225"/>
+  <figcaption><i>Left: A skilled sniper taking out a moving target. Right: A PUBG map.</i></figcaption>
+</figure>
+
 ## Motivation
-![PUBG Map](./assets/pubg_map.jpg)
 
 Battle royale games have surged in popularity in recent years. The premise of such games is as follows: players are dropped onto a fictional island and fight to be the last person (or team) standing. As they roam around the island, they loot for weapons and items crucial for their survival.
 
-We are interested in building a prediction model for the popular battle royale game PUBG (PlayerUnknown's Battlegrounds). In PUBG, players not only have to worry about getting killed by other players, but they also have to stay within the shrinking "safe zone," which forces players into contact with each other. Outside of the "safe zone," players take damage to their health at increasing rates. Through our analysis, we aim to understand which playing strategies are more successful than others: How aggressive are the playing styles of the winners? Is it better to land in a densely or sparsely populated area? Do players who travel more place higher? The answers to these questions will be of high interest for the PUBG gaming community.
+We are interested in building a prediction model for the popular battle royale game PUBG (PlayerUnknown's Battlegrounds). In PUBG, players not only have to worry about getting killed by other players, but they also have to stay within the shrinking "safe zone," which forces players into contact with each other. Outside of the "safe zone," players take damage to their health at increasing rates. 
+
+Through our analysis, we aim to understand which playing strategies are more successful than others: How aggressive are the playing styles of the winners? Is it better to land in a densely or sparsely populated area? Do players who travel more place higher? The answers to these questions will be of high interest for the PUBG gaming community.
 
 ## Related Work
 
@@ -35,7 +42,7 @@ The data comes from the Kaggle competition. To download the data, join the Kaggl
 
 Note: We will need to provide a direct download link for the TA.
 
-```{r import_data}
+```{r import_data, cache=T}
 # Warning: Very large datasets. Read 10,000 samples first before scaling up.
 raw_dat = read_csv("data/train_V2.csv.zip", n_max = 10000)
 ```
@@ -63,6 +70,11 @@ test = clean_dat %>%
 ```
 
 # Exploratory Data Analysis
+
+```{r}
+head(train)
+```
+
 
 # Data Analysis (Modeling)
 
