@@ -5,3 +5,4 @@ pubg_prediction.Rproj
 .Rhistory
 pred_model_cache/
 pred_model_files/
+.RData
