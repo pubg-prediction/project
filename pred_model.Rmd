@@ -30,15 +30,15 @@ Through our analysis, we aim to understand which playing strategies are more suc
 
 ## Related Work
 
-This project was inspired by a [Kaggle competition](https://www.kaggle.com/c/pubg-finish-placement-prediction). 
+This project was inspired by a [Kaggle competition](https://www.kaggle.com/c/pubg-finish-placement-prediction):
 
 > The team at PUBG has made official game data available for the public to explore and scavenge outside of "The Blue Circle." This competition is not an official or affiliated PUBG site - Kaggle collected data made possible through the PUBG Developer API. You are given over 65,000 games' worth of anonymized player data, split into training and testing sets, and asked to predict final placement from final in-game stats and initial player ratings.
 
-We thought that it would also serve as a good final project idea for this class, since there's a lot of potential in what we could do with the data. We wanted to build upon the Kaggle competition's task to develop a hopefully interesting analysis.
+We thought that it would serve as a good final project idea for this class, since there's a lot of potential in what we could do with the data. We wanted to build upon the Kaggle competition's task to develop a hopefully interesting analysis.
 
 ## Initial Questions
 
-First, we want to investigate how well we can predict a player's placement based on their in-game actions. Exploring this question can then provide insight into how different playing styles compare. We would like to be able to build a model that accurately predicts a player’s game performance, but also allows us to draw inferences about whether certain playing styles are more successful. 
+First, we want to investigate how well we can predict a player's placement based on their in-game actions. What actions or statistics are most predictive of their placement? Exploring this question can then provide insight into how different playing styles compare. We would like to be able to build a model that accurately predicts a player’s game performance, but also allows us to draw inferences about whether certain playing styles are more successful. 
 
 # Data
 
@@ -53,14 +53,16 @@ raw_dat = read_csv("data/train_V2.csv.zip", n_max = 10000)
 
 ## Variables
 
-Each row in the data contains one player's post-game stats. A description of all data fields is provided in `pubg_codebook.csv`. We will focus on the solo game mode. Only about 4% of the data is in this game mode. The outcome variable we are trying to predict is `win_place_perc`. 
+Each row in the data contains one player's post-game stats. A description of all data fields is provided in `pubg_codebook.csv`. We will focus on the solo game mode (match_type is solo, solo-fpp, or normal-solo-fpp). The solo game mode constitutes about 15% of the data. The outcome variable we are trying to predict is `win_place_perc`. 
 
 ```{r clean_data}
 # Select solo mode only
 clean_dat = raw_dat %>%
   clean_names() %>%
-  filter(match_type == "solo")
+  filter(match_type %in% c("solo", "solo-fpp", "normal-solo-fpp"))
 ```
+
+## Training and Test Set 
 
 We are given a training set and a test set. The outcome variable for the test set will not be given to us until the end of the Kaggle competition in Jan. 30th, 2019. Therefore, for the purposes of this project, we will only be using the provided training set. Within the training set, we will create our own training and test set. 
 
