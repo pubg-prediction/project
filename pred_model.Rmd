@@ -61,8 +61,8 @@ if(!file.exists("./data/pubg.zip")){
 ```
 
 ```{r import_data}
-# Warning: Very large datasets. Read 10000 samples before scaling up.
-raw_dat  <- read_csv("data/pubg/train_V2.csv", n_max = 10000)
+# Warning: Very large datasets. Read 10000 random samples before scaling up.
+raw_dat  <- read_csv("data/pubg/train_V2.csv") %>% sample_n(10000)
 
 test_dat <- read_csv("data/pubg/test_V2.csv")
 ```
@@ -79,6 +79,7 @@ Each row in the data contains one player's post-game stats. A description of all
 #   Change player_id and match_id to factors
 #   Change `kill_points` and `win_points` to NA if rank points = -1 and kill/win_points = 0
 #   Change rank_points to NA if rank_points = -1
+#   Drop rows missing data for win_perc
 clean_dat <- raw_dat %>% 
   clean_names() %>%
   filter(match_type %in% c("solo", "solo-fpp", "normal-solo-fpp")) %>%
@@ -86,7 +87,8 @@ clean_dat <- raw_dat %>%
   mutate(kill_points = ifelse(rank_points == -1 & kill_points == 0, NA, kill_points), 
          win_points = ifelse(rank_points == -1 & win_points == 0, NA, win_points), 
          rank_points = ifelse(rank_points == -1, NA, rank_points)) %>%
-  mutate(id = as.factor(id), match_id = as.factor(match_id))
+  mutate(id = as.factor(id), match_id = as.factor(match_id)) %>%
+  drop_na(win_place_perc)
 ```
 
 ## Training and Test Set 
@@ -107,6 +109,23 @@ head(train)
 ```
 
 # Exploratory Data Analysis
+
+In our data set, we have `r n_distinct(train$match_id)` players with no duplicates (i.e. no player has participated in more than one game). Additionally our training set consists of data for `r n_distinct(train$match_id)` matches with data for on average around 80\% of players. 
+
+```{r base_char_data}
+# Look at unique players
+length(train$id)
+n_distinct(train$id)
+
+# Look at unique matches
+n_distinct(train$match_id)
+
+# Look at players per game
+#   Calculate proportion of data we have for individuals in a game, 
+#   using max place as our estimate for number of players
+train %>% group_by(match_id, max_place) %>% count() %>%
+  mutate(prop_data = n/max_place)
+```
 
 ## Distribution of Features by Finish Percentile
 We first explored the distribution of each feature by the final finish percentile. Individuals were first classified into 0-19th, 20th-39th, 40th-59th, 60th-79th, 80th-99th, and 100th (winners) percentile finish across all games. Then, we plotted the density of features by these percentiles. 
