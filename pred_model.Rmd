@@ -123,10 +123,15 @@ train %>% mutate(win_place_cat = as.factor(floor(win_place_perc / 2 * 10) * 20))
   
 This plot has some very interesting features:
 
-* In general, we see rightward shifts
-   * `kill_place` has a bimodal distribution. You have people in the 10th percentile finish who have high kills and also low kill ranks (maybe this is reflected in `kill_points`, people who have high `kill_points` will be in the category of: high kills per game (so high kills rank) but low finish percentage. )
-   * Some features look highly skewed (e.g. `longest_kill`, `ride_distance`, `swim_distnace`, etc.). Maybe we may want to look at the log-transformations of these data?
-   
+* In general, we see that as the finish percentile increases, the distribution of each feature shifts rightward. 
+* The graph of `boost` and `heals` used suggests that players who use more boosts or healing items are likely to last longer in the game. This makes intuitive sense as boosts enable players to have increased passive health regeneration and movement speed, and healing items regain health. 
+* For `damage_dealt`, we see similar differences among players by their finish percentile. Winner (e.g. 100th percentile) have a broad distribution in damage dealt suggesting that some solo players may win by not having high damage dealt while other deal significantly more damage. It is important to note that winners must have killed at least one individual. Thus, it is expected that the damage dealt distribution for winners is shifted to the right in comparison to players with lower finish percentiles. 
+* `kill_place`, `kill_points`, `kills`, and `win_points` follow bimodal distributions. This may reflect the play-styles of each player. Players who land in populated areas are more likely to encounter other players, resulting in a higher porbability of dying or a larger number of kills if the player survives. Thus, we can partition players in the 10th percentile finish into two categories: a skilled player who but dies early due to dropping in a populated location, but due to their skill acquires a large number of kills or a less-skilled player who dies early due to lack of skill despite dropping in a less populated location. 
+* Some features look highly skewed (e.g. `longest_kill`, `ride_distance`, `swim_distance`, `ride_distance`, etc.). We may want to log-transform these variables in our model building. 
+* The `num_groups` density plots suggest that in games where we have little data, we tend to have data on the winners. Thus, there may be some imbalance in the data we will need to either adjust for to ensure that our model doesn't overestimate finish percentile. 
+* `win_points` and `kill_points` are external characteristics (from previous games) that attempt to characterize the skill level of a player. These distributions are bimodal which may reflect the extremes of the two playstyles described above. It seems that `kill_points` has more predictive value of finish percentile as the right-shift is more distinct by finish percentage category than `win_points`. Interestingly, `rank_points` suggests that prior-game ranks do not have a large impact on the final placement in a game. This makes sense since in-gamve variables like drop location, loot, and circle movement can affect how likely an individual is to win. 
+
+##
 Additional plots we might want:
 
 * Duration of game versus range of kills? (Shorter games might mean more people dropped in similar locations, etc. )
