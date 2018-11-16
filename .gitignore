@@ -1,0 +1,7 @@
+.DS_Store
+data/
+pubg_prediction.Rproj
+.Rproj.user
+.Rhistory
+pred_model_cache/
+pred_model_files/

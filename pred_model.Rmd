@@ -8,8 +8,12 @@ output:
 ---
 
 ```{r packages, include = F}
+knitr::opts_chunk$set(include = TRUE, comment = NA, warning = FALSE, 
+                      message = FALSE, cache = TRUE, fig.align = 'center', 
+                      cache = TRUE)
+
 library(pacman) # for loading packages
-p_load(tidyverse, janitor, caret)
+p_load(tidyverse, janitor, caret, lubridate)
 ```
 
 # Motivation and Overview
@@ -22,11 +26,35 @@ p_load(tidyverse, janitor, caret)
 
 The data comes from a [Kaggle competition](https://www.kaggle.com/c/pubg-finish-placement-prediction). We are given a training set and a test set.
 
+```{r download_data}
+data.url <- paste0("https://www.dropbox.com/s/319vkfevkfb6kqt/all.zip?dl=1")
+
+if(!file.exists("./data/pubg.zip")){
+  dir.create("./data")
+  download.file(data.url, destfile = "./data/pubg.zip", mode = "wb")
+  unzip("./data/pubg.zip", exdir = "./data/pubg")
+}
+```
+
 ```{r import_data}
-# Run download_data.sh to download the data
 # Warning: Very large datasets. Read 1000 samples.
-train = read_csv("data/train_V2.csv.zip", n_max = 1000)
-test = read_csv("data/test_V2.csv.zip", n_max = 1000)
+train <- read_csv("data/pubg/train_V2.csv") 
+test  <- read_csv("data/pubg/test_V2.csv")
+```
+
+```{r subset_data}
+# Select single-player data only
+#   Remove features that are not relevant to single-players
+#   Change player_id and match_id to factors
+#   Change matchDuration
+train_sp  <- train %>% filter(matchType == "solo") %>%
+  select(-DBNOs, -assists, -revives, -groupId, -matchType, -teamKills) %>%
+  mutate(Id = as.factor(Id), matchId = as.factor(matchId),
+         matchDuration = as.period(matchDuration, "seconds"))
+test_sp   <- test %>% filter(matchType == "solo") %>%
+  select(-DBNOs, -assists, -revives, -groupId, -matchType, -teamKills) %>%
+  mutate(Id = as.factor(Id), matchId = as.factor(matchId),
+         matchDuration = as.period(matchDuration, "seconds"))
 ```
 
 ## Variables
@@ -39,6 +67,27 @@ Each row in the data contains one player's post-game stats. A description of the
 
 
 # Exploratory Data Analysis
+
+Plot of Distribution of Features by Finish Percentile
+
+  1. First categorize individuals by the 10th, 20th, ..., percentile finish, 
+  2. Plot density of each feature value, colored by percentile category
+  
+Interesting features:
+   * `killPlace` has a bimodal distribution. You have people in the 10th percentile finish who have high kills and also low kill ranks (maybe this is reflected in `killPoints`, people who have high `killPoints` will be in the category of: high kills per game (so high kills rank) but low finish percentage. )
+   * Some features look highly skewed (e.g. `boosts`, `headshotKills`, `heals`, `rideDistance`, `roadKills`, etc.). Maybe we may want to look at the log-transformations of these data?
+   
+```{r plot_dist_of_features_by_percentile, fig.width = 10, fig.height = 12}
+train_sp %>% mutate(winPlaceCat = as.factor(floor(winPlacePerc*10)*10)) %>%
+  gather("feature", "value", -matchId, -matchDuration, 
+         -Id, -winPlacePerc, - winPlaceCat) %>%
+  ggplot(aes(x = value, group = winPlaceCat, color = winPlaceCat)) +
+  facet_wrap(feature ~., scales = "free") +
+  geom_density() +
+  labs(title = "Distribution of Features by Finish Percentile", 
+       x = "Value of Features", y = "Density", color = "Percentile") +
+  theme_bw()
+```
 
 # Data Analysis (Modeling)
 
