@@ -77,10 +77,15 @@ Each row in the data contains one player's post-game stats. A description of all
 #   Clean names
 #   Remove features that are not relevant to single-players
 #   Change player_id and match_id to factors
+#   Change `kill_points` and `win_points` to NA if rank points = -1 and kill/win_points = 0
+#   Change rank_points to NA if rank_points = -1
 clean_dat <- raw_dat %>% 
   clean_names() %>%
   filter(match_type %in% c("solo", "solo-fpp", "normal-solo-fpp")) %>%
   select(-dbn_os, -assists, -revives, -group_id, -match_type, -team_kills) %>%
+  mutate(kill_points = ifelse(rank_points == -1 & kill_points == 0, NA, kill_points), 
+         win_points = ifelse(rank_points == -1 & win_points == 0, NA, win_points), 
+         rank_points = ifelse(rank_points == -1, NA, rank_points)) %>%
   mutate(id = as.factor(id), match_id = as.factor(match_id))
 ```
 
@@ -129,9 +134,9 @@ This plot has some very interesting features:
 * `kill_place`, `kill_points`, `kills`, and `win_points` follow bimodal distributions. This may reflect the play-styles of each player. Players who land in populated areas are more likely to encounter other players, resulting in a higher porbability of dying or a larger number of kills if the player survives. Thus, we can partition players in the 10th percentile finish into two categories: a skilled player who but dies early due to dropping in a populated location, but due to their skill acquires a large number of kills or a less-skilled player who dies early due to lack of skill despite dropping in a less populated location. 
 * Some features look highly skewed (e.g. `longest_kill`, `ride_distance`, `swim_distance`, `ride_distance`, etc.). We may want to log-transform these variables in our model building. 
 * The `num_groups` density plots suggest that in games where we have little data, we tend to have data on the winners. Thus, there may be some imbalance in the data we will need to either adjust for to ensure that our model doesn't overestimate finish percentile. 
-* `win_points` and `kill_points` are external characteristics (from previous games) that attempt to characterize the skill level of a player. These distributions are bimodal which may reflect the extremes of the two playstyles described above. It seems that `kill_points` has more predictive value of finish percentile as the right-shift is more distinct by finish percentage category than `win_points`. Interestingly, `rank_points` suggests that prior-game ranks do not have a large impact on the final placement in a game. This makes sense since in-gamve variables like drop location, loot, and circle movement can affect how likely an individual is to win. 
+* `rank_points`, `win_points` and `kill_points` are external characteristics (from previous games) that attempt to characterize the skill level of a player. These distributions are bimodal which may reflect the extremes of the two playstyles described above. It seems that `kill_points` has more predictive value of finish percentile as the right-shift is more distinct by finish percentage category than `rank_points`. Interestingly, `rank_points` suggests that prior-game ranks do not have a large impact on the final placement in a game (though there is a note int the `pubg_codebook.csv` file that this metric is deprecated). This makes sense since in-game variables like drop location, loot, and circle movement can affect how likely an individual is to win. 
 
-##
+## 
 Additional plots we might want:
 
 * Duration of game versus range of kills? (Shorter games might mean more people dropped in similar locations, etc. )
@@ -145,6 +150,7 @@ Additional plots we might want:
 corr_matrix = test %>% select(-id, -match_id) %>% cor()
 corrplot(corr_matrix, method = "circle")
 ```
+
 # Data Analysis (Modeling)
 
 # Narrative and Summary
