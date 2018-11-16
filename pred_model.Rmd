@@ -3,8 +3,8 @@ title: "PUBG Prediction Model"
 author: "Albert Kuo, Athena Chen"
 output: 
   html_document:
-    code_folding: "show"
     toc: TRUE
+    toc_float: TRUE
 ---
 
 ```{r packages, include = F}
@@ -16,15 +16,40 @@ library(pacman) # for loading packages
 p_load(tidyverse, janitor, caret, lubridate)
 ```
 
-# Motivation and Overview
+# Overview
 
-# Related Work
+<figure>
+  <img src="https://media.giphy.com/media/xT0xeHi1rHNKi8j4Ck/giphy.gif" alt="sniper.gif" width="400"/>
+  <img src="./assets/pubg_map.jpg" alt="pubg_map.jpg" width="223"/>
+  <figcaption><i>Left: A skilled sniper taking out a moving target. Right: A PUBG map.</i></figcaption>
+</figure>
 
-# Initial Questions
+## Motivation
+
+Battle royale games have surged in popularity in recent years. The premise of such games is as follows: players are dropped onto a fictional island and fight to be the last person standing. As they roam around the island, they loot for weapons and items crucial for their survival.
+
+We are interested in building a prediction model for the popular battle royale game PUBG (PlayerUnknown's Battlegrounds). In PUBG, players not only have to worry about getting killed by other players, but they also have to stay within the shrinking "safe zone," which effectively forces players into contact with each other. Outside of the "safe zone," players take damage to their health at increasing rates. 
+
+Through our analysis, we aim to understand which playing strategies are more successful than others: How aggressive are the playing styles of the winners? Is it better to land in a densely or sparsely populated area? Do players who travel farther on the map tend to place higher or lower? Answers to such questions will be of high interest for the PUBG gaming community.
+
+## Related Work
+
+This project was inspired by a [Kaggle competition](https://www.kaggle.com/c/pubg-finish-placement-prediction):
+
+> The team at PUBG has made official game data available for the public to explore and scavenge outside of "The Blue Circle." This competition is not an official or affiliated PUBG site - Kaggle collected data made possible through the PUBG Developer API. You are given over 65,000 games' worth of anonymized player data, split into training and testing sets, and asked to predict final placement from final in-game stats and initial player ratings.
+
+We thought that it would serve as a good final project idea for this class, since there's a lot of potential in what we could do with the data. We wanted to build upon the Kaggle competition's task to develop a hopefully interesting analysis.
+
+## Initial Questions
+
+First, we want to investigate how well we can predict a player's placement based on their in-game actions. What actions or statistics are most predictive of their placement? Exploring this question can then provide insight into how different playing styles compare. We would like to be able to build a model that accurately predicts a player’s game performance, but also allows us to draw inferences about whether certain playing styles are more successful. 
 
 # Data
 
-The data comes from a [Kaggle competition](https://www.kaggle.com/c/pubg-finish-placement-prediction). We are given a training set and a test set.
+The data comes from the Kaggle competition. To download the data, join the Kaggle competition and run the shell script `download_data.sh`. 
+
+Note: We will need to provide a direct download link for the TA.
+
 
 ```{r download_data}
 data.url <- paste0("https://www.dropbox.com/s/319vkfevkfb6kqt/all.zip?dl=1")
@@ -37,57 +62,73 @@ if(!file.exists("./data/pubg.zip")){
 ```
 
 ```{r import_data}
-# Warning: Very large datasets. Read 1000 samples.
-train <- read_csv("data/pubg/train_V2.csv") 
-test  <- read_csv("data/pubg/test_V2.csv")
+# Warning: Very large datasets. Read 10000 samples before scaling up.
+raw_dat  <- read_csv("data/pubg/train_V2.csv", n_max = 10000)
+
+test_dat <- read_csv("data/pubg/test_V2.csv")
 ```
 
-```{r subset_data}
-# Select single-player data only
-#   Remove features that are not relevant to single-players
-#   Change player_id and match_id to factors
-#   Change matchDuration
-train_sp  <- train %>% filter(matchType == "solo") %>%
-  select(-DBNOs, -assists, -revives, -groupId, -matchType, -teamKills) %>%
-  mutate(Id = as.factor(Id), matchId = as.factor(matchId),
-         matchDuration = as.period(matchDuration, "seconds"))
-test_sp   <- test %>% filter(matchType == "solo") %>%
-  select(-DBNOs, -assists, -revives, -groupId, -matchType, -teamKills) %>%
-  mutate(Id = as.factor(Id), matchId = as.factor(matchId),
-         matchDuration = as.period(matchDuration, "seconds"))
-```
 
 ## Variables
 
-Each row in the data contains one player's post-game stats. A description of the data fields is provided in `pubg_codebook.csv`. 
+Each row in the data contains one player's post-game stats. A description of all data fields is provided in `pubg_codebook.csv`. We will focus on the solo game mode (match_type is solo, solo-fpp, or normal-solo-fpp). The solo game mode constitutes about 15% of the data. The outcome variable we are trying to predict is `win_place_perc`. 
 
-```{r}
-
+```{r clean_data}
+# Select single-player data only
+#   Clean names
+#   Remove features that are not relevant to single-players
+#   Change player_id and match_id to factors
+clean_dat <- raw_dat %>% 
+  clean_names() %>%
+  filter(match_type %in% c("solo", "solo-fpp", "normal-solo-fpp")) %>%
+  select(-dbn_os, -assists, -revives, -group_id, -match_type, -team_kills) %>%
+  mutate(id = as.factor(id), match_id = as.factor(match_id))
 ```
 
+## Training and Test Set 
+
+We are given a training set and a test set. The outcome variable for the test set will not be given to us until the end of the Kaggle competition in Jan. 30th, 2019. Therefore, for the purposes of this project, we will only be using the provided training set. Within the training set, we will create our own training and test set. 
+
+```{r train_test_split}
+# Split into train and test set
+train_ind = createDataPartition(y = clean_dat$win_place_perc, p = 0.8, list = F)
+train = clean_dat %>%
+  slice(train_ind)
+test = clean_dat %>%
+  slice(-train_ind)
+```
+
+```{r}
+head(train)
+```
 
 # Exploratory Data Analysis
-
 Plot of Distribution of Features by Finish Percentile
 
   1. First categorize individuals by the 10th, 20th, ..., percentile finish, 
   2. Plot density of each feature value, colored by percentile category
   
 Interesting features:
-   * `killPlace` has a bimodal distribution. You have people in the 10th percentile finish who have high kills and also low kill ranks (maybe this is reflected in `killPoints`, people who have high `killPoints` will be in the category of: high kills per game (so high kills rank) but low finish percentage. )
-   * Some features look highly skewed (e.g. `boosts`, `headshotKills`, `heals`, `rideDistance`, `roadKills`, etc.). Maybe we may want to look at the log-transformations of these data?
+   * `kill_place` has a bimodal distribution. You have people in the 10th percentile finish who have high kills and also low kill ranks (maybe this is reflected in `kill_points`, people who have high `kill_points` will be in the category of: high kills per game (so high kills rank) but low finish percentage. )
+   * Some features look highly skewed (e.g. `longest_kill`, `ride_distance`, `swim_distnace`, etc.). Maybe we may want to look at the log-transformations of these data?
    
+Additional plots we might want:
+
+* Duration of game versus range of kills? (Shorter games might mean more people dropped in similar locations, etc. )
+* Corrplot of features (just to get an idea of what else might be correlated)
+
 ```{r plot_dist_of_features_by_percentile, fig.width = 10, fig.height = 12}
-train_sp %>% mutate(winPlaceCat = as.factor(floor(winPlacePerc*10)*10)) %>%
-  gather("feature", "value", -matchId, -matchDuration, 
-         -Id, -winPlacePerc, - winPlaceCat) %>%
-  ggplot(aes(x = value, group = winPlaceCat, color = winPlaceCat)) +
+train %>% mutate(win_place_cat = as.factor(floor(win_place_perc * 10) * 10)) %>%
+  gather("feature", "value", -match_id, -match_duration, 
+         -id, -win_place_perc, -win_place_cat) %>%
+  ggplot(aes(x = value, group = win_place_cat, color = win_place_cat)) +
   facet_wrap(feature ~., scales = "free") +
   geom_density() +
   labs(title = "Distribution of Features by Finish Percentile", 
        x = "Value of Features", y = "Density", color = "Percentile") +
   theme_bw()
 ```
+
 
 # Data Analysis (Modeling)
 
