@@ -16,21 +16,25 @@ p_load(tidyverse, janitor, caret)
 
 <figure>
   <img src="https://media.giphy.com/media/xT0xeHi1rHNKi8j4Ck/giphy.gif" alt="sniper.gif" width="400"/>
-  <img src="./assets/pubg_map.jpg" alt="pubg_map.jpg" width="225"/>
+  <img src="./assets/pubg_map.jpg" alt="pubg_map.jpg" width="223"/>
   <figcaption><i>Left: A skilled sniper taking out a moving target. Right: A PUBG map.</i></figcaption>
 </figure>
 
 ## Motivation
 
-Battle royale games have surged in popularity in recent years. The premise of such games is as follows: players are dropped onto a fictional island and fight to be the last person (or team) standing. As they roam around the island, they loot for weapons and items crucial for their survival.
+Battle royale games have surged in popularity in recent years. The premise of such games is as follows: players are dropped onto a fictional island and fight to be the last person standing. As they roam around the island, they loot for weapons and items crucial for their survival.
 
-We are interested in building a prediction model for the popular battle royale game PUBG (PlayerUnknown's Battlegrounds). In PUBG, players not only have to worry about getting killed by other players, but they also have to stay within the shrinking "safe zone," which forces players into contact with each other. Outside of the "safe zone," players take damage to their health at increasing rates. 
+We are interested in building a prediction model for the popular battle royale game PUBG (PlayerUnknown's Battlegrounds). In PUBG, players not only have to worry about getting killed by other players, but they also have to stay within the shrinking "safe zone," which effectively forces players into contact with each other. Outside of the "safe zone," players take damage to their health at increasing rates. 
 
-Through our analysis, we aim to understand which playing strategies are more successful than others: How aggressive are the playing styles of the winners? Is it better to land in a densely or sparsely populated area? Do players who travel more place higher? The answers to these questions will be of high interest for the PUBG gaming community.
+Through our analysis, we aim to understand which playing strategies are more successful than others: How aggressive are the playing styles of the winners? Is it better to land in a densely or sparsely populated area? Do players who travel farther on the map tend to place higher or lower? Answers to such questions will be of high interest for the PUBG gaming community.
 
 ## Related Work
 
-This project was inspired by a [Kaggle competition](https://www.kaggle.com/c/pubg-finish-placement-prediction). In the competition, we are asked to "predict final placement from in-game stats and initial player ratings." 
+This project was inspired by a [Kaggle competition](https://www.kaggle.com/c/pubg-finish-placement-prediction). 
+
+> The team at PUBG has made official game data available for the public to explore and scavenge outside of "The Blue Circle." This competition is not an official or affiliated PUBG site - Kaggle collected data made possible through the PUBG Developer API. You are given over 65,000 games' worth of anonymized player data, split into training and testing sets, and asked to predict final placement from final in-game stats and initial player ratings.
+
+We thought that it would also serve as a good final project idea for this class, since there's a lot of potential in what we could do with the data. We wanted to build upon the Kaggle competition's task to develop a hopefully interesting analysis.
 
 ## Initial Questions
 
