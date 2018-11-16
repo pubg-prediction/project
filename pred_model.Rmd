@@ -13,7 +13,7 @@ knitr::opts_chunk$set(include = TRUE, comment = NA, warning = FALSE,
                       cache = TRUE)
 
 library(pacman) # for loading packages
-p_load(tidyverse, janitor, caret, lubridate)
+p_load(tidyverse, janitor, caret, lubridate, corrplot)
 ```
 
 # Overview
@@ -26,7 +26,7 @@ p_load(tidyverse, janitor, caret, lubridate)
 
 ## Motivation
 
-Battle royale games have surged in popularity in recent years. The premise of such games is as follows: players are dropped onto a fictional island and fight to be the last person standing. As they roam around the island, they loot for weapons and items crucial for their survival.
+Battle royale games have surged in popularity in recent years. The premise of such games is as follows: players are dropped onto a fictional island and fight to be the last person standing. As they roam around the island, they loot for weapons and items crucial for their survival. Players can choose to join a game as a solo player or with a group of friends (4 players maximum). When playing solo, players are immediately eliminated when they are killed. However, in group play, killed individuals can be revived by their teammates. 
 
 We are interested in building a prediction model for the popular battle royale game PUBG (PlayerUnknown's Battlegrounds). In PUBG, players not only have to worry about getting killed by other players, but they also have to stay within the shrinking "safe zone," which effectively forces players into contact with each other. Outside of the "safe zone," players take damage to their health at increasing rates. 
 
@@ -50,7 +50,6 @@ The data comes from the Kaggle competition. To download the data, join the Kaggl
 
 Note: We will need to provide a direct download link for the TA.
 
-
 ```{r download_data}
 data.url <- paste0("https://www.dropbox.com/s/319vkfevkfb6kqt/all.zip?dl=1")
 
@@ -71,7 +70,7 @@ test_dat <- read_csv("data/pubg/test_V2.csv")
 
 ## Variables
 
-Each row in the data contains one player's post-game stats. A description of all data fields is provided in `pubg_codebook.csv`. We will focus on the solo game mode (match_type is solo, solo-fpp, or normal-solo-fpp). The solo game mode constitutes about 15% of the data. The outcome variable we are trying to predict is `win_place_perc`. 
+Each row in the data contains one player's post-game stats. A description of all data fields is provided in `pubg_codebook.csv`. We will focus on the solo game mode (`match_type` is solo, solo-fpp, or normal-solo-fpp). The solo game mode constitutes about 15% of the data. The outcome variable we are trying to predict is `win_place_perc`. 
 
 ```{r clean_data}
 # Select single-player data only
@@ -103,22 +102,14 @@ head(train)
 ```
 
 # Exploratory Data Analysis
-Plot of Distribution of Features by Finish Percentile
 
-  1. First categorize individuals by the 10th, 20th, ..., percentile finish, 
-  2. Plot density of each feature value, colored by percentile category
-  
-Interesting features:
-   * `kill_place` has a bimodal distribution. You have people in the 10th percentile finish who have high kills and also low kill ranks (maybe this is reflected in `kill_points`, people who have high `kill_points` will be in the category of: high kills per game (so high kills rank) but low finish percentage. )
-   * Some features look highly skewed (e.g. `longest_kill`, `ride_distance`, `swim_distnace`, etc.). Maybe we may want to look at the log-transformations of these data?
-   
-Additional plots we might want:
+## Distribution of Features by Finish Percentile
+We first explored the distribution of each feature by the final finish percentile. Individuals were first classified into 0-19th, 20th-39th, 40th-59th, 60th-79th, 80th-99th, and 100th (winners) percentile finish across all games. Then, we plotted the density of features by these percentiles. 
 
-* Duration of game versus range of kills? (Shorter games might mean more people dropped in similar locations, etc. )
-* Corrplot of features (just to get an idea of what else might be correlated)
+It is important to note that the density plots aggregate by percent finish in a game. Thus, it is possible for one individual to place within the 10th percentile in one game, but then finish in the 90th percentile in another. This individual would contribute to the approximated density for both the 0-19th percentile and the 80th-99th percentile. 
 
 ```{r plot_dist_of_features_by_percentile, fig.width = 10, fig.height = 12}
-train %>% mutate(win_place_cat = as.factor(floor(win_place_perc * 10) * 10)) %>%
+train %>% mutate(win_place_cat = as.factor(floor(win_place_perc / 2 * 10) * 20)) %>%
   gather("feature", "value", -match_id, -match_duration, 
          -id, -win_place_perc, -win_place_cat) %>%
   ggplot(aes(x = value, group = win_place_cat, color = win_place_cat)) +
@@ -126,10 +117,29 @@ train %>% mutate(win_place_cat = as.factor(floor(win_place_perc * 10) * 10)) %>%
   geom_density() +
   labs(title = "Distribution of Features by Finish Percentile", 
        x = "Value of Features", y = "Density", color = "Percentile") +
+  scale_color_hue(labels = c("0-19", "20-39", "40-59", "60-79", "80-99", "100")) +
   theme_bw()
 ```
+  
+This plot has some very interesting features:
+
+* In general, we see rightward shifts
+   * `kill_place` has a bimodal distribution. You have people in the 10th percentile finish who have high kills and also low kill ranks (maybe this is reflected in `kill_points`, people who have high `kill_points` will be in the category of: high kills per game (so high kills rank) but low finish percentage. )
+   * Some features look highly skewed (e.g. `longest_kill`, `ride_distance`, `swim_distnace`, etc.). Maybe we may want to look at the log-transformations of these data?
+   
+Additional plots we might want:
+
+* Duration of game versus range of kills? (Shorter games might mean more people dropped in similar locations, etc. )
+
+```{r duration_vs_}
 
 
+```
+
+```{r corr_plot, fig.width = 10, fig.height = 12}
+corr_matrix = test %>% select(-id, -match_id) %>% cor()
+corrplot(corr_matrix, method = "circle")
+```
 # Data Analysis (Modeling)
 
 # Narrative and Summary
