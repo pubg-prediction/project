@@ -123,8 +123,8 @@ n_distinct(train$match_id)
 # Look at players per game
 #   Calculate proportion of data we have for individuals in a game, 
 #   using max place as our estimate for number of players
-train %>% group_by(match_id, max_place) %>% count() %>%
-  mutate(prop_data = n/max_place)
+train %>% group_by(match_id, max_place, match_duration) %>% count() %>%
+  mutate(prop_data = n/max_place) 
 ```
 
 ## Distribution of Features by Finish Percentile
@@ -155,21 +155,13 @@ This plot has some very interesting features:
 * The `num_groups` density plots suggest that in games where we have little data, we tend to have data on the winners. Thus, there may be some imbalance in the data we will need to either adjust for to ensure that our model doesn't overestimate finish percentile. 
 * `rank_points`, `win_points` and `kill_points` are external characteristics (from previous games) that attempt to characterize the skill level of a player. These distributions are bimodal which may reflect the extremes of the two playstyles described above. It seems that `kill_points` has more predictive value of finish percentile as the right-shift is more distinct by finish percentage category than `rank_points`. Interestingly, `rank_points` suggests that prior-game ranks do not have a large impact on the final placement in a game (though there is a note int the `pubg_codebook.csv` file that this metric is deprecated). This makes sense since in-game variables like drop location, loot, and circle movement can affect how likely an individual is to win. 
 
-## 
-Additional plots we might want:
+## Correlation Plot
 
-* Duration of game versus range of kills? (Shorter games might mean more people dropped in similar locations, etc. )
-
-```{r duration_vs_}
-
-
-```
+Statistics related to `kills` seem to be well correlated with finish percentile. Additional duration of game does not seem to be strongly correlated with many of the in-game features such as `kills`, `walk_distance`, etc. 
 
 ```{r corr_plot, fig.width = 10, fig.height = 12}
 corr_matrix = test %>% select(-id, -match_id) %>% cor()
 corrplot(corr_matrix, method = "circle")
 ```
-
-# Data Analysis (Modeling)
 
 # Narrative and Summary
