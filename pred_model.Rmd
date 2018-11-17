@@ -83,7 +83,7 @@ solo_dat <- clean_dat %>%
   #sample_n(10000) %>%
   filter(match_type %in% c("solo", "solo-fpp", "normal-solo-fpp")) %>%
   select(-dbn_os, -assists, -revives, -group_id, -match_type, -team_kills) %>%        #   Remove features that are not relevant to single-players
-  mutate(kill_points = ifelse(rank_points == -1 & kill_points == 0, NA, kill_points), 
+  mutate(kill_points = ifelse(rank_points == -1 & kill_points == 0, NA, kill_points), # Following codebook explanations
          win_points = ifelse(rank_points == -1 & win_points == 0, NA, win_points), 
          rank_points = ifelse(rank_points == -1, NA, rank_points)) %>%
   mutate(id = as.factor(id), match_id = as.factor(match_id))
@@ -91,7 +91,7 @@ solo_dat <- clean_dat %>%
 
 ## Training and Test Set 
 
-We are given a training set and a test set. The outcome variable for the test set will not be given to us until the end of the Kaggle competition in Jan. 30th, 2019. Therefore, for the purposes of this project, we will only be using the provided training set. Within the provided training set, we will create our own "training" (80%) and "test" set (20%).
+We are given a training set and a test set. The outcome variable for the test set will not be provided until the end of the Kaggle competition in Jan. 30th, 2019. Therefore, for the purposes of this project, we will only be using the provided training set. Within the provided training set, we will create our own "training" (80%) and "test" set (20%). For the rest of the document, the training set we refer to is the one we've created.
 
 ```{r train_test_split}
 # Split into train and test set
@@ -103,38 +103,58 @@ test_solo = solo_dat %>%
 ```
 
 ```{r}
-head(train_solo)
+glimpse(train_solo)
 ```
 
 # Exploratory Data Analysis
 
-In our data set, we have `r n_distinct(train_solo$match_id)` players with no duplicates (i.e. no player has participated in more than one game). Additionally our training set consists of data for `r n_distinct(train_solo$match_id)` matches with data for on average around 80\% of players. 
+In the training set, we have `r n_distinct(train_solo$match_id)` players and `r n_distinct(train_solo$match_id)` unique matches. 
 
-```{r base_char_data}
-# Look at unique players
-length(train_solo$id)
-n_distinct(train_solo$id)
+```{r prop_data}
+# Compute proportions
+prop_data = train_solo %>% 
+  group_by(match_id, max_place, match_duration) %>% 
+  count() %>%
+  ungroup() %>%
+  mutate(prop = n/max_place,
+         remove_game = prop > 1)
 
-# Look at unique matches
-n_distinct(train_solo$match_id)
+# Games with proportion greater than 100%
+prop_over_100 = prop_data %>%
+  summarize(prop_n = sum(prop > 1),
+            prop_games = prop_n/n())
 
-# Look at players per game
-#   Calculate proportion of data we have for individuals in a game, 
-#   using max place as our estimate for number of players
-train_solo %>% group_by(match_id, max_place, match_duration) %>% count() %>%
-  mutate(prop_data = n/max_place) 
+# Histogram
+prop_data %>%
+  ggplot(aes(x = prop)) + 
+  geom_histogram(bins = 30) +
+  labs(title = "Proportion of players we have data for in a game",
+       x = "Proportion",
+       y = "Count") +
+  theme_minimal()
+
+# Remove games with proportion greater than 100%
+remove_match_ids = prop_data %>%
+  filter(remove_game) %>%
+  pull(match_id)
+
+train_solo = train_solo %>%
+  filter(!(match_id %in% remove_match_ids))
 ```
 
-The number of unique player IDs is `r n_distinct(train_solo$id)` and the number of unique matches is `r n_distinct(train_solo$match_id)`.
-
+For most games, we have between 70% to 90% of the players' data, using `max_place` (the worst placement for which we have data) as a proxy for total number of players. For `r prop_over_100$prop_n` games (`r round(prop_over_100$prop_games*100, 2)`% of all games), we have more observations than `max_place`, which is not possible. Thus, we exclude these games from our analysis.
 
 ## Distribution of Features by Finish Percentile
+
 We first explored the distribution of each feature by the final finish percentile. Individuals were first classified into 0-19th, 20th-39th, 40th-59th, 60th-79th, 80th-99th, and 100th (winners) percentile finish across all games. Then, we plotted the density of features by these percentiles. 
 
 It is important to note that the density plots aggregate by percent finish in a game. Thus, it is possible for one individual to place within the 10th percentile in one game, but then finish in the 90th percentile in another. This individual would contribute to the approximated density for both the 0-19th percentile and the 80th-99th percentile. 
 
 ```{r plot_dist_of_features_by_percentile, fig.width = 10, fig.height = 12}
-train_solo %>% mutate(win_place_cat = as.factor(floor(win_place_perc / 2 * 10) * 20)) %>%
+set.seed(1)
+train_solo %>% 
+  sample_n(10000) %>%
+  mutate(win_place_cat = as.factor(floor(win_place_perc / 2 * 10) * 20)) %>%
   gather("feature", "value", -match_id, -match_duration, 
          -id, -win_place_perc, -win_place_cat) %>%
   ggplot(aes(x = value, group = win_place_cat, color = win_place_cat)) +
