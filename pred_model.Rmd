@@ -72,26 +72,19 @@ raw_dat <- read_csv("./data/train_V2.csv.zip")
 
 ## Variables
 
-Each row in the data contains one player's post-game stats. A description of all data fields is provided in `pubg_codebook.csv`. We will focus on the solo game mode (`match_type` is solo, solo-fpp, or normal-solo-fpp). The solo game mode constitutes about 15% of the data. The outcome variable we are trying to predict is `win_place_perc`. 
+Each row in the data contains one player's post-game stats. A description of all data fields is provided in `data/pubg_codebook.csv`. We will focus on the solo game mode (`match_type` is solo, solo-fpp, or normal-solo-fpp). The solo game mode constitutes about 16% of the data, with 720,386 observations. The outcome variable we are trying to predict is `win_place_perc`. 
 
 ```{r clean_data}
-# Select single-player data only
-#   Clean names
-#   Remove features that are not relevant to single-players
-#   Change player_id and match_id to factors
-#   Change `kill_points` and `win_points` to NA if rank points = -1 and kill/win_points = 0
-#   Change rank_points to NA if rank_points = -1
-#   Drop rows missing data for win_perc
 clean_dat <- raw_dat %>% 
   clean_names() %>%
-  sample_n(10000) %>%
+  #sample_n(10000) %>%
   filter(match_type %in% c("solo", "solo-fpp", "normal-solo-fpp")) %>%
-  select(-dbn_os, -assists, -revives, -group_id, -match_type, -team_kills) %>%
+  select(-dbn_os, -assists, -revives, -group_id, -match_type, -team_kills) %>%        #   Remove features that are not relevant to single-players
   mutate(kill_points = ifelse(rank_points == -1 & kill_points == 0, NA, kill_points), 
          win_points = ifelse(rank_points == -1 & win_points == 0, NA, win_points), 
          rank_points = ifelse(rank_points == -1, NA, rank_points)) %>%
   mutate(id = as.factor(id), match_id = as.factor(match_id)) %>%
-  drop_na(win_place_perc)
+  drop_na(win_place_perc) # Drop rows without outcome variable
 ```
 
 ## Training and Test Set 
