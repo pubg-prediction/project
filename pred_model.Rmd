@@ -149,19 +149,11 @@ We first explored the distribution of each feature by the final finish percentil
 
 ```{r plot_dist_of_features_by_percentile, fig.width = 10, fig.height = 12}
 set.seed(1)
+filter_vars = c("boosts", "damage_dealt", "headshot_kills", "heals", "kills", "longest_kill", "ride_distance", "swim_distance", "walk_distance", "weapons_acquired")
 train_solo %>% 
-  filter(boosts < quantile(boosts, 0.99) &                          # Remove outliers
-           damage_dealt < quantile(damage_dealt, 0.99) &
-           headshot_kills < quantile(headshot_kills, 0.99) &
-           heals < quantile(heals, 0.99) &
-           kill_streaks < quantile(kill_streaks, 0.99) &
-           kills < quantile(kills, 0.99) &
-           longest_kill < quantile(longest_kill, 0.99) &
-           ride_distance < quantile(ride_distance, 0.99) &
-           swim_distance < quantile(swim_distance, 0.99) &
-           walk_distance < quantile(walk_distance, 0.99) &
-           weapons_acquired < quantile(weapons_acquired, 0.99)) %>%
-  select(-max_place, -num_groups) %>%                              # Not interested in these features
+  filter_at(vars(filter_vars), all_vars(. < quantile(., 0.99, na.rm = T))) %>%   # Remove outliers
+  rename_at(vars(filter_vars), ~ sapply(filter_vars, function(str) paste0(str, "*"))) %>% # Mark variables for which we removed outliers with asterisk
+  select(-max_place, -num_groups) %>%                           # Not interested in these features
   mutate(win_place_cat = floor(win_place_perc / 0.2),
          win_place_cat = ifelse(win_place_cat == 5, 4, win_place_cat),
          win_place_cat = as.factor(win_place_cat)) %>%
@@ -171,6 +163,7 @@ train_solo %>%
   facet_wrap(feature ~., scales = "free") +
   geom_density() +
   labs(title = "Distribution of Features by Finish Percentile", 
+       caption = "* Removed outliers (> 99th percentile) from this feature's density plot",
        x = "Value of Features", y = "Density", color = "Percentile") +
   scale_color_manual(labels = c("0-19", "20-39", "40-59", "60-79", "80-100"),
                      values = brewer.pal(5, "OrRd")) +
@@ -178,6 +171,8 @@ train_solo %>%
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
   
+**Note: Need to resolve warning (non-finite values)**
+
 Some interesting relationships between the features and the finish percentile:
 
 - **Use of Items** (`boosts`, `heals`, and `weapons_acquired`): Players who finish higher tend to have used more boosts and healing items, and acquired more weapons. This is expected since they stayed in the game for a longer period and have more time to collect and use items. However, it would be interesting to explore which of these variables is most predictive of a high finish placement.
