@@ -152,9 +152,14 @@ It is important to note that the density plots aggregate by percent finish in a 
 
 ```{r plot_dist_of_features_by_percentile, fig.width = 10, fig.height = 12}
 set.seed(1)
+# Color-blind-friendly palette
+cbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
 train_solo %>% 
   sample_n(10000) %>%
-  mutate(win_place_cat = as.factor(floor(win_place_perc / 2 * 10) * 20)) %>%
+  mutate(win_place_cat = floor(win_place_perc / 0.2),
+         win_place_cat = ifelse(win_place_cat == 5, 4, win_place_cat),
+         win_place_cat = as.factor(win_place_cat)) %>%
   gather("feature", "value", -match_id, -match_duration, 
          -id, -win_place_perc, -win_place_cat) %>%
   ggplot(aes(x = value, group = win_place_cat, color = win_place_cat)) +
@@ -162,7 +167,8 @@ train_solo %>%
   geom_density() +
   labs(title = "Distribution of Features by Finish Percentile", 
        x = "Value of Features", y = "Density", color = "Percentile") +
-  scale_color_hue(labels = c("0-19", "20-39", "40-59", "60-79", "80-99", "100")) +
+  scale_color_manual(labels = c("0-19", "20-39", "40-59", "60-79", "80-99", "100"),
+                     values = cbPalette) +
   theme_bw()
 ```
   
