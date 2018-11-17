@@ -31,7 +31,7 @@ Battle royale games have surged in popularity in recent years. The premise of su
 
 We are interested in building a prediction model for the popular battle royale game PUBG (PlayerUnknown's Battlegrounds). In PUBG, players not only have to worry about getting killed by other players, but they also have to stay within the shrinking "safe zone," which effectively forces players into contact with each other. Outside of the "safe zone," players take damage to their health at increasing rates. 
 
-Through our analysis, we aim to understand which playing strategies are more successful than others: How aggressive are the playing styles of the winners? Is it better to land in a densely or sparsely populated area? Do players who travel farther on the map tend to place higher or lower? Answers to such questions will be of high interest for the PUBG gaming community.
+Through our analysis, we aim to understand what characterizes winning players or teams: How aggressive are the playing styles of the winners? Is it better to land in a densely or sparsely populated area? Do players who travel farther on the map tend to place higher or lower? Answers to such questions will be of high interest for the PUBG gaming community.
 
 ## Related Work
 
@@ -39,23 +39,27 @@ This project was inspired by a [Kaggle competition](https://www.kaggle.com/c/pub
 
 > The team at PUBG has made official game data available for the public to explore and scavenge outside of "The Blue Circle." This competition is not an official or affiliated PUBG site - Kaggle collected data made possible through the PUBG Developer API. You are given over 65,000 games' worth of anonymized player data, split into training and testing sets, and asked to predict final placement from final in-game stats and initial player ratings.
 
-We thought that it would serve as a good final project idea for this class, since there's a lot of potential in what we could do with the data. We wanted to build upon the Kaggle competition's task to develop a hopefully interesting analysis.
+We thought that it would serve as a good final project idea for this class, since there's a lot of potential in what we could do with the data. We wanted to build upon the Kaggle competition to develop a hopefully interesting analysis.
 
 ## Initial Questions
 
-First, we want to investigate how well we can predict a player's placement based on their in-game actions. What actions or statistics are most predictive of their placement? Exploring this question can then provide insight into how different playing styles compare. We would like to be able to build a model that accurately predicts a player’s game performance, but also allows us to draw inferences about whether certain playing styles are more successful. 
+The main goal of this project is to predict a player's finish placement based on their in-game actions. Specifically, the three subquestions of interest are:
+
+1. **Model Prediction Accuracy**: How well can we predict a player's finish placement?
+2. **Feature Ranking**: What player actions or statistics are most predictive of their finish placement?
+3. **Clustering**: Which playing styles are most successful?
 
 # Data
 
-The data comes from the Kaggle competition. 
+The data comes from the Kaggle competition.
 
-1. For TA use: Run the code chunk below to download the data from the Dropbox link.
-2. For everyone else: Join the Kaggle competition and run the shell script `download_data.sh`.
+* **For TA use**: Run the code chunk below to download the data from the Dropbox link. This link is guaranteed to be available only during the grading period. 
+* **For everyone else**: Join the Kaggle competition and run the shell script `download_data.sh`.
 
 ```{r download_data}
 data.url <- paste0("https://www.dropbox.com/s/319vkfevkfb6kqt/all.zip?dl=1")
 
-if(!dir.exists("./data")){
+if(!file.exists("./data/train_V2.csv.zip")){
   download.file(data.url, destfile = "./pubg.zip", mode = "wb")
   unzip("./pubg.zip", exdir = "./pubg")
   file.rename("./pubg", "./data")
@@ -101,13 +105,9 @@ test_solo = solo_dat %>%
   slice(-train_ind)
 ```
 
-```{r}
-glimpse(train_solo)
-```
-
 # Exploratory Data Analysis
 
-In the training set, we have `r n_distinct(train_solo$match_id)` players and `r n_distinct(train_solo$match_id)` unique matches. 
+In the training set, we have `r n_distinct(train_solo$id)` players and `r n_distinct(train_solo$match_id)` matches. 
 
 ```{r prop_data}
 # Compute proportions
