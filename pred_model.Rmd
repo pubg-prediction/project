@@ -57,13 +57,10 @@ The data comes from the Kaggle competition.
 * **For everyone else**: Join the Kaggle competition and run the shell script `download_data.sh`.
 
 ```{r download_data}
-data.url <- paste0("https://www.dropbox.com/s/319vkfevkfb6kqt/all.zip?dl=1")
+data.url <- paste0("https://www.dropbox.com/s/mp89gp57cz2dsc7/train_V2.csv.zip?dl=1")
 
 if(!file.exists("./data/train_V2.csv.zip")){
-  download.file(data.url, destfile = "./pubg.zip", mode = "wb")
-  unzip("./pubg.zip", exdir = "./pubg")
-  file.rename("./pubg", "./data")
-  file.remove("./pubg.zip")
+  download.file(data.url, destfile = "./data/train_V2.csv.zip", mode = "wb")
 }
 ```
 
@@ -126,7 +123,7 @@ prop_over_100 = prop_data %>%
 # Histogram
 prop_data %>%
   ggplot(aes(x = prop)) + 
-  geom_histogram(bins = 30) +
+  geom_histogram(bins = 30, color = 'white') +
   labs(title = "Proportion of players we have data for in a game",
        x = "Proportion",
        y = "Count") +
@@ -182,10 +179,8 @@ Some interesting relationships between the features and the finish percentile:
 - **Distance Traveled** (`walk_distance`, `swim_distance`, and `ride_distance`): Players who finish higher tend to have walked farther. This is likely because they simply survive longer and are force to travel to stay in the safe zone, whereas players who die early don't get a chance to travel very far. Both swimming and riding in vehicles are rare occurrences, though it appears that players who finish higher also tend to do more of both.
 
 
-(Below is what you wrote originally, Athena, in case you want to retain something):
+(Additional notes to ourselves regarding some features of the data we might want to look at):
 
-* The graph of `boost` and `heals` used suggests that players who use more boosts or healing items are likely to last longer in the game. This makes intuitive sense as boosts enable players to have increased passive health regeneration and movement speed, and healing items regain health. 
-* For `damage_dealt`, we see similar differences among players by their finish percentile. Winner (e.g. 100th percentile) have a broad distribution in damage dealt suggesting that some solo players may win by not having high damage dealt while other deal significantly more damage. It is important to note that winners must have killed at least one individual. Thus, it is expected that the damage dealt distribution for winners is shifted to the right in comparison to players with lower finish percentiles. 
 * `kill_place`, `kill_points`, `kills`, and `win_points` follow bimodal distributions. This may reflect the play-styles of each player. Players who land in populated areas are more likely to encounter other players, resulting in a higher porbability of dying or a larger number of kills if the player survives. Thus, we can partition players in the 10th percentile finish into two categories: a skilled player who but dies early due to dropping in a populated location, but due to their skill acquires a large number of kills or a less-skilled player who dies early due to lack of skill despite dropping in a less populated location. 
 * Some features look highly skewed (e.g. `longest_kill`, `ride_distance`, `swim_distance`, `ride_distance`, etc.). We may want to log-transform these variables in our model building. 
 * The `num_groups` density plots suggest that in games where we have little data, we tend to have data on the winners. Thus, there may be some imbalance in the data we will need to either adjust for to ensure that our model doesn't overestimate finish percentile. 
