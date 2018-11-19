@@ -149,8 +149,7 @@ set.seed(1)
 filter_vars = c("boosts", "damage_dealt", "headshot_kills", "heals", "kills", "longest_kill", "ride_distance", "swim_distance", "walk_distance", "weapons_acquired")
 train_solo %>% 
   filter_at(vars(filter_vars), all_vars(. < quantile(., 0.99, na.rm = T))) %>%   # Remove outliers
-  rename_at(vars(filter_vars), ~ sapply(filter_vars, function(str) paste0(str, "*"))) %>% # Mark variables for which we removed outliers with asterisk
-  select(-max_place, -num_groups) %>%                           # Not interested in these features
+  rename_at(vars(filter_vars), ~ sapply(filter_vars, function(str) paste0(str, "*"))) %>% # Mark variables for which we removed outliers with asterisk features
   mutate(win_place_cat = floor(win_place_perc / 0.2),
          win_place_cat = ifelse(win_place_cat == 5, 4, win_place_cat),
          win_place_cat = as.factor(win_place_cat)) %>%
@@ -174,7 +173,7 @@ Some interesting relationships between the features and the finish percentile:
 
 - **Use of Items** (`boosts`, `heals`, and `weapons_acquired`): Players who finish higher tend to have used more boosts and healing items, and acquired more weapons. This is expected since they stayed in the game for a longer period and have more time to collect and use items. However, it would be interesting to explore which of these variables is most predictive of a high finish placement.
 
-- **Kills & Damage** (`damage_dealt`, `kill_place`, and `kills`): Players who finish higher tend to have more kills. They also tend to have dealt more damage. However, in the top finishing group, there is a wide variety in how much damage they inflict. This could potentially indicate strategies that differ in their level of aggressiveness during the course of the game but are similarly successful in achieving a high placement.
+- **Kills & Damage** (`damage_dealt`, `kill_place`, and `kills`): Players who finish higher tend to have more kills. They also tend to have dealt more damage. However, in the top finishing group, there is a wide variety in how much damage they inflict. This could potentially indicate strategies that differ in their level of aggressiveness during the course of the game but are similarly successful in achieving a high placement. 
 
 - **Distance Traveled** (`walk_distance`, `swim_distance`, and `ride_distance`): Players who finish higher tend to have walked farther. This is likely because they simply survive longer and are force to travel to stay in the safe zone, whereas players who die early don't get a chance to travel very far. Both swimming and riding in vehicles are rare occurrences, though it appears that players who finish higher also tend to do more of both.
 
@@ -200,7 +199,47 @@ corrplot(corr_matrix, method = "color", type = "upper")
 
 # Data Analysis
 
-## Models
+## Predictive Models
+
+We will fit the following models:
+
+1. Linear regression
+2. Random forest
+3. a few others in the caret package
+
+### Linear Regression
+
+First, we fit a linear regression model to get a sense of the predictive accuracy we are able to achieve without tuning any parameters as well as which features are significant (with the caveat that we know there is high correlation between some of the features).
+
+```{r}
+# caret method = "lm"
+# caret method = "penalized"
+```
+
+### Random Forest
+
+```{r}
+
+```
+
+### Summary of Models
+
+Comparison of model accuracies with a table or a plot. What is the highest accuracy we are able to achieve (with cross-validation)? What is that model's accuracy on the test set?
+
+There are many possible ways to evaluate accuracy. We can do MSE or we can count number of games we correctly predicted the winner for. I think that this section is probably going to be the least interesting one, so we don't have to spend too much time here.
+
+
+## Clustering and Features
+
+We can try the following and see which one gives us a better story:
+
+1. We can do PCA, plot observations along principal components, color points by outcome, and then try to interpret the top principal components in terms of the features.
+
+2. Manually summarize the features into something like the 3-4 categories described in the exploratory data analysis section, i.e. engineer a summary feature for "damage/kills", another summary feature for "distance travelled." Consult correlation plot and PCA plot to get good groupings as well. Then plot observations along these summary features and color points by outcome. This is basically the same idea as PCA except we already have a story in place for what the components mean.
+
+## Feature Ranking
+
+Which features are most predictive? I think we will have a better idea of this after we run the models and do clustering. Based on what we know, we can summarize what we have learned, with some additional evidence.
 
 
 # Narrative and Summary
