@@ -82,11 +82,13 @@ Each row in the data contains one player's post-game stats. A description of all
 solo_dat <- clean_dat %>% 
   #sample_n(10000) %>%
   filter(match_type %in% c("solo", "solo-fpp", "normal-solo-fpp")) %>%
-  select(-dbn_os, -assists, -revives, -group_id, -match_type, -team_kills) %>%        #   Remove features that are not relevant to single-players
+  select(-dbn_os, -assists, -revives, -group_id, -match_type, -team_kills) %>%        #   Remove features that are not relevant to solo mode
   mutate(kill_points = ifelse(rank_points == -1 & kill_points == 0, NA, kill_points), # Following codebook explanations
          win_points = ifelse(rank_points == -1 & win_points == 0, NA, win_points), 
-         rank_points = ifelse(rank_points == -1, NA, rank_points)) %>%
-  mutate(id = as.factor(id), match_id = as.factor(match_id))
+         rank_points = ifelse(rank_points == -1, NA, rank_points),
+         id = as.factor(id), 
+         match_id = as.factor(match_id)) %>%
+  select(-rank_points)     # Variable is being deprecated
 ```
 
 ## Training and Test Set 
@@ -95,6 +97,7 @@ We are given a training set and a test set. The outcome variable for the test se
 
 ```{r train_test_split}
 # Split into train and test set
+set.seed(1)
 train_ind = createDataPartition(y = solo_dat$win_place_perc, p = 0.8, list = F)
 train_solo = solo_dat %>%
   slice(train_ind)
@@ -138,7 +141,7 @@ train_solo = train_solo %>%
   filter(!(match_id %in% remove_match_ids))
 ```
 
-For most games, we have between 70% to 90% of the players' data, using `max_place` (the worst placement for which we have data) as a proxy for total number of players. For `r prop_over_100$prop_n` games (`r round(prop_over_100$prop_games*100, 2)`% of all games), we have more observations than `max_place`, which is not possible. Thus, we exclude these games from our analysis.
+For most games, we have between 70% to 90% of the players' data, using `max_place` (the worst placement for which we have data) as a proxy for total number of players. For `r prop_over_100$prop_n` games (`r round(prop_over_100$prop_games*100, 2)`% of all games), we have more observations than `max_place`, which is not possible. Thus, we excluded these games from our analysis.
 
 ## Distribution of Features by Finish Percentile
 
@@ -205,21 +208,32 @@ We will fit the following models:
 
 1. Linear regression
 2. Random forest
-3. a few others in the caret package
+3. A few others in the caret package
 
 ### Linear Regression
 
-First, we fit a linear regression model to get a sense of the predictive accuracy we are able to achieve without tuning any parameters as well as which features are significant (with the caveat that we know there is high correlation between some of the features).
+First, we fit a linear regression model with all features to get a baseline predictive accuracy we are able to achieve without tuning any parameters or using more complicated models.
 
-```{r}
-# caret method = "lm"
-# caret method = "penalized"
+```{r lm, eval = F}
+set.seed(1)
+tc = trainControl(method = "cv", number = 5)
+
+lr_model = train(win_place_perc ~ ., data = train_solo, method = "lm", trControl = tc)
+summary(lr_model)
+```
+
+Try elastic net: uses both ridge regression-like penalty (controls for correlated features) and lasso penalty (variable selection).
+
+```{r lasso, eval = F}
+lasso_model = train(win_place_perc ~ ., data = train_solo, method = "glmnet", trControl = tc)
+summary(lasso_model)
 ```
 
 ### Random Forest
 
-```{r}
-
+```{r rf, eval = F}
+rf_model = train(win_place_perc ~ ., data = train_solo, method = "rf", trControl = tc)
+summary(rf_model)
 ```
 
 ### Summary of Models
