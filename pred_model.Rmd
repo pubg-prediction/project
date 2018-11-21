@@ -253,7 +253,7 @@ We can try the following and see which one gives us a better story:
 
 ### Principal Components Analysis
 
-```{r}
+```{r pca}
 # PCA
 X = train_solo %>%
   select(-win_place_perc, -id, -match_id) %>%
@@ -271,16 +271,41 @@ fviz_pca_var(pc,
              gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
              repel = TRUE     # Avoid text overlapping
              )
+```
 
-# Color by groups
+The first principal component explains most of the variance we see in our features. In the second plot, we also see the features' contributions for the first two principal components.
+
+```{r pca_points}
+# Plot points on principal components 1 and 2 
 data.frame(PC1 = pc$x[,1], PC2 = pc$x[,2]) %>%
   ggplot(aes(PC1, PC2, color = train_solo$win_place_perc)) +
   geom_point(aes(alpha = 0.5)) +
-  labs(title = "First 2 PCs",
+  labs(title = "Win Place Percent of Training Data by PC1 and PC2",
+       color = "Win Place Percent") +
+  guides(alpha = F) +
+  theme_bw()
+
+# Plot point on principal components 1 and 3
+data.frame(PC1 = pc$x[,1], PC3 = pc$x[,3]) %>%
+  ggplot(aes(PC1, PC3, color = train_solo$win_place_perc)) +
+  geom_point(aes(alpha = 0.5)) +
+  labs(title = "Win Place Percent of Training Data by PC1 and PC3",
+       color = "Win Place Percent") +
+  guides(alpha = F) +
+  theme_bw()
+
+# Plot point on principal components 2 and 3
+data.frame(PC2 = pc$x[,2], PC3 = pc$x[,3]) %>%
+  ggplot(aes(PC2, PC3, color = train_solo$win_place_perc)) +
+  geom_point(aes(alpha = 0.5)) +
+  labs(title = "Win Place Percent of Training Data by PC2 and PC3",
        color = "Win Place Percent") +
   guides(alpha = F) +
   theme_bw()
 ```
+
+Our outcome variable `win_place_perc` is pretty well explained by the first princiapl component. There are also interesting clusters formed when we plot principal components 2 and 3. 
+
 
 
 ## Feature Ranking
