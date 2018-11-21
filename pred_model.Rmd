@@ -273,7 +273,13 @@ fviz_pca_var(pc,
              )
 ```
 
-The first principal component explains most of the variance we see in our features. In the second plot, we also see the features' contributions for the first two principal components.
+The first principal component explains much of the variance we see in our features (29.6%), while the second to sixth principal component all explain between 5 to 10%. In the second plot, we can observe each feature's contribution to the first two principal components and their correlations.
+
+1. **PC 1**: It appears that the first principal component comprises of features related to damage and kills, primarily the features `kills`, `kill_place`, `damage_dealt`. To a lesser extent, features like `damage_dealt`, `longest_kill`, `headshot_kills`, `boosts`, and `heals` also exhibit contribution primarily to the first principal component. 
+
+2. **PC 2**: The second principal component is characterized by details related to the match setting, i.e. `num_groups` and `max_place`, as well as `win_points` and `kill_points`, which I don't remember what they mean.
+
+Remaining features like `road_kills`, `vehicle_destroys`, `ride_distance` do not contribute much to either of the first two principal components. We should investigate if they do to the third principal component.
 
 ```{r pca_points}
 # Plot points on principal components 1 and 2 
@@ -304,9 +310,7 @@ data.frame(PC2 = pc$x[,2], PC3 = pc$x[,3]) %>%
   theme_bw()
 ```
 
-Our outcome variable `win_place_perc` is pretty well explained by the first princiapl component. There are also interesting clusters formed when we plot principal components 2 and 3. 
-
-
+Our outcome variable `win_place_perc` is pretty well explained by the first princiapl component. There are also interesting clusters formed when we plot principal components 2 and 3 that we should investigate.
 
 ## Feature Ranking
 
