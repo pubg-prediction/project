@@ -14,7 +14,7 @@ knitr::opts_chunk$set(include = TRUE, comment = NA, warning = FALSE,
 
 ```{r packages, include = F, cache = F}
 library(pacman) # for loading packages
-p_load(tidyverse, janitor, caret, lubridate, RColorBrewer, corrplot)
+p_load(tidyverse, janitor, caret, lubridate, RColorBrewer, corrplot, factoextra)
 ```
 
 # Overview
@@ -212,7 +212,7 @@ We will fit the following models:
 
 ### Linear Regression
 
-First, we fit a linear regression model with all features to get a baseline predictive accuracy we are able to achieve without tuning any parameters or using more complicated models.
+First, we fit a linear regression model with all features to get a baseline predictive accuracy we are able to achieve.
 
 ```{r lm, eval = F}
 set.seed(1)
@@ -250,6 +250,38 @@ We can try the following and see which one gives us a better story:
 1. We can do PCA, plot observations along principal components, color points by outcome, and then try to interpret the top principal components in terms of the features.
 
 2. Manually summarize the features into something like the 3-4 categories described in the exploratory data analysis section, i.e. engineer a summary feature for "damage/kills", another summary feature for "distance travelled." Consult correlation plot and PCA plot to get good groupings as well. Then plot observations along these summary features and color points by outcome. This is basically the same idea as PCA except we already have a story in place for what the components mean.
+
+### Principal Components Analysis
+
+```{r}
+# PCA
+X = train_solo %>%
+  select(-win_place_perc, -id, -match_id) %>%
+  as.matrix()
+
+pc = prcomp(X, center = T, scale = T)
+
+# Plot eigenvalues (percentage of variances explained by each principal component)
+fviz_eig(pc)
+
+# Plot variables in terms of the first two principal components
+# Positively correlated variables point in the same direction, negative correlated variables point to opposite direction
+fviz_pca_var(pc,
+             col.var = "contrib", # Color by contributions to the PC
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE     # Avoid text overlapping
+             )
+
+# Color by groups
+data.frame(PC1 = pc$x[,1], PC2 = pc$x[,2]) %>%
+  ggplot(aes(PC1, PC2, color = train_solo$win_place_perc)) +
+  geom_point(aes(alpha = 0.5)) +
+  labs(title = "First 2 PCs",
+       color = "Win Place Percent") +
+  guides(alpha = F) +
+  theme_bw()
+```
+
 
 ## Feature Ranking
 
