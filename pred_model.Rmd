@@ -209,7 +209,6 @@ We will fit the following models:
 1. Linear regression
 2. Random forest
 3. A few others in the caret package
-4. Bayesian Hierarchal Model
 
 ### Linear Regression
 First, we fit a linear regression model with 10-fold cross-validation. Since the final win percentage must be a value beteen 0 and 1, we log-transform `1 + win_place_perc` where the `1` is added to ensure all values are defined. The initial model will include all covariates except for the match ID and player ID. These two variables were excluded for two reasons: 
@@ -218,7 +217,7 @@ First, we fit a linear regression model with 10-fold cross-validation. Since the
 2. Both of these variables should not have an impact on the final win percentage of a player as the players in a game are assumed to be randomly selected. Additionally, the player ID does not affect how much data we have on a player as no player appears in more than one game in this data set, so including player ID would be equivalent to adding meaningless dummy variables.
 
 
-```{r lm, eval = F}
+```{r lm}
 set.seed(1)
 tc = trainControl(method = "cv", number = 10)
 
@@ -235,30 +234,80 @@ varImp(lr_model$finalModel) %>% mutate(variable = rownames(.)) %>%
 train_solo %>% mutate(predicted = exp(lr_model$finalModel$fitted.values)-1) %>%
   ggplot(aes(x = predicted, y = win_place_perc)) +
   geom_point() +
-  labs(main = "Predicted Versus Actual Win Place Percentage in the Training Set", 
+  labs(title = "Predicted Versus Actual Win Place Percentage in the Training Set", 
        x = "Predicted Win Place Percentage", y = "Actual Win Place Percentage") +
   geom_abline(intercept = 0, slope = 1, color = 'red') +
   theme_bw()
 ```
 
+As we noted earlier in the data exploration, some of the covariates are correlated and some features seem to contain little information or signal (such as distance traveled or swam). Thus, we explore the use of elastic net regression which uses ridge-regression-like penalty to adjust for correlated features and lasso penalty to set the non-informative features to zero. 
 
-Try elastic net: uses both ridge regression-like penalty (controls for correlated features) and lasso penalty (variable selection).
-
-```{r lasso, eval = F}
+```{r lasso}
+# Fit lasso_model using glmnet
 lasso_model = train(log(win_place_perc +1) ~ . - match_id - id, data = train_solo, 
                     method = "glmnet", trControl = tc)
-summary(lasso_model)
+print(lasso_model)
+
+# Look at coefficients of final model
+coef(lasso_model$finalModel, lasso_model$bestTune$lambda)
+
+# Look at relative importance of predictors in the model
+varImp(lasso_model$finalModel) %>% mutate(variable = rownames(.)) %>%
+  arrange(desc(Overall))
+
+# Look at plot of predicted values versus true values on training set
+lasso_fitted = predict(lasso_model, train_solo)
+train_solo %>% mutate(predicted = exp(lasso_fitted)-1) %>%
+  ggplot(aes(x = predicted, y = win_place_perc)) +
+  geom_point() +
+  labs(title = "Predicted Versus Actual Win Place Percentage in the Training Set", 
+       x = "Predicted Win Place Percentage", y = "Actual Win Place Percentage") +
+  geom_abline(intercept = 0, slope = 1, color = 'red') +
+  theme_bw()
 ```
 
 ### Random Forest
-
 ```{r rf, eval = F}
-rf_model = train(log(win_place_perc+1) ~ . - match_id - id, data = train_solo, method = "rf", trControl = tc)
-summary(rf_model)
+rf_model = train(log(win_place_perc + 1) ~ . - match_id - id, data = train_solo, 
+                 method = "rf", trControl = tc)
+print(rf_model)
 ```
 
-### Summary of Models
+### Evaluating Model Performance on the Test Set
+```{r lr_test}
+# Linear regression
+lr_pred = predict(lr_model, newdata = test_solo)
 
+# Plot Actual vs. Predicted
+test_solo %>% mutate(predict = lr_pred) %>%
+  ggplot(aes(x = exp(predict)-1, y = win_place_perc)) +
+  geom_point() + 
+  geom_abline(slope = 1, intercept = 0, color = 'red') +
+  labs(title = "Predicted Versus Actual Win Place Percentage in the Test Set", 
+       x = "Predicted Win Place Percentage", y = "Actual Win Place Percentage") +
+  theme_bw()
+
+# Get MSE
+lr_MSE = mean((exp(lr_pred) - 1 - test_solo$win_place_perc)^2)
+```
+
+```{r lasso_test}
+# Elastic net
+lasso_pred = predict(lasso_model, newdata = test_solo)
+
+# Plot Actual vs. Predicted
+test_solo %>% mutate(predict = lasso_pred) %>%
+  ggplot(aes(x = exp(predict)-1, y = win_place_perc)) +
+  geom_point() + 
+  geom_abline(slope = 1, intercept = 0, color = 'red') +
+  labs(title = "Predicted Versus Actual Win Place Percentage in the Test Set", 
+       x = "Predicted Win Place Percentage", y = "Actual Win Place Percentage") +
+  theme_bw()
+
+# Get MSE
+lasso_MSE = mean((exp(lasso_pred) - 1 - test_solo$win_place_perc)^2)
+```
+### Summary of Models
 Comparison of model accuracies with a table or a plot. What is the highest accuracy we are able to achieve (with cross-validation)? What is that model's accuracy on the test set?
 
 There are many possible ways to evaluate accuracy. We can do MSE or we can count number of games we correctly predicted the winner for. I think that this section is probably going to be the least interesting one, so we don't have to spend too much time here.
@@ -284,6 +333,15 @@ pc = prcomp(X, center = T, scale = T)
 
 # Plot eigenvalues (percentage of variances explained by each principal component)
 fviz_eig(pc)
+
+# Plot cumulative variance explained by the first k PCs
+data.frame(cumvar = cumsum(pc$sdev^2/sum(pc$sdev^2))) %>%
+  ggplot(aes(x = 1:length(cumvar), y = cumvar*100)) +
+  geom_point() +
+  geom_line() + 
+  labs(title = "Cumulative Variance Explained by the First K PCs", 
+       x = "K", y = "Percent of Variance Explained") +
+  theme_bw()
 
 # Plot variables in terms of the first two principal components
 # Positively correlated variables point in the same direction, negative correlated variables point to opposite direction
@@ -332,6 +390,11 @@ data.frame(PC2 = pc$x[,2], PC3 = pc$x[,3]) %>%
 ```
 
 Our outcome variable `win_place_perc` is pretty well explained by the first princiapl component. There are also interesting clusters formed when we plot principal components 2 and 3 that we should investigate.
+
+## Questions:
+1. Do we want to engineer features and refit the data? Kill/damage, match characteristics, use of items, distance traveled?
+2. K-means clustering with k = 2? (One for 2 play styles: aggressive, hiding)
+3. What PC space do we want? looks like 4 -5 captures a decent amount of variance?
 
 ## Feature Ranking
 
