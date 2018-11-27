@@ -82,13 +82,13 @@ Each row in the data contains one player's post-game stats. A description of all
 solo_dat <- clean_dat %>% 
   #sample_n(10000) %>%
   filter(match_type %in% c("solo", "solo-fpp", "normal-solo-fpp")) %>%
-  select(-dbn_os, -assists, -revives, -group_id, -match_type, -team_kills) %>%        #   Remove features that are not relevant to solo mode
+  select(-dbn_os, -assists, -revives, -group_id, -match_type, -team_kills) %>%        # Remove features that are not relevant to solo mode
   mutate(kill_points = ifelse(rank_points == -1 & kill_points == 0, NA, kill_points), # Following codebook explanations
          win_points = ifelse(rank_points == -1 & win_points == 0, NA, win_points), 
          rank_points = ifelse(rank_points == -1, NA, rank_points),
          id = as.factor(id), 
          match_id = as.factor(match_id)) %>%
-  select(-rank_points)     # Variable is being deprecated
+  select(-rank_points)    # Variable is being deprecated
 ```
 
 ## Training and Test Set 
@@ -209,30 +209,51 @@ We will fit the following models:
 1. Linear regression
 2. Random forest
 3. A few others in the caret package
+4. Bayesian Hierarchal Model
 
 ### Linear Regression
+First, we fit a linear regression model with 10-fold cross-validation. Since the final win percentage must be a value beteen 0 and 1, we log-transform `1 + win_place_perc` where the `1` is added to ensure all values are defined. The initial model will include all covariates except for the match ID and player ID. These two variables were excluded for two reasons: 
 
-First, we fit a linear regression model with all features to get a baseline predictive accuracy we are able to achieve.
+1. The size of the resulting model exhausted the vector memory
+2. Both of these variables should not have an impact on the final win percentage of a player as the players in a game are assumed to be randomly selected. Additionally, the player ID does not affect how much data we have on a player as no player appears in more than one game in this data set, so including player ID would be equivalent to adding meaningless dummy variables.
+
 
 ```{r lm, eval = F}
 set.seed(1)
-tc = trainControl(method = "cv", number = 5)
+tc = trainControl(method = "cv", number = 10)
 
-lr_model = train(win_place_perc ~ ., data = train_solo, method = "lm", trControl = tc)
+# Fit linear model using step-wise model selection using AIC
+lr_model = train(log(win_place_perc + 1) ~ . - match_id - id, data = train_solo, 
+                 method = "lmStepAIC", trControl = tc, trace = FALSE)
 summary(lr_model)
+
+# Look at relative importance of individual predictors in the model
+varImp(lr_model$finalModel) %>% mutate(variable = rownames(.)) %>%
+  arrange(desc(Overall))
+
+# Look at plot of predicted values versus true values on training set
+train_solo %>% mutate(predicted = exp(lr_model$finalModel$fitted.values)-1) %>%
+  ggplot(aes(x = predicted, y = win_place_perc)) +
+  geom_point() +
+  labs(main = "Predicted Versus Actual Win Place Percentage in the Training Set", 
+       x = "Predicted Win Place Percentage", y = "Actual Win Place Percentage") +
+  geom_abline(intercept = 0, slope = 1, color = 'red') +
+  theme_bw()
 ```
+
 
 Try elastic net: uses both ridge regression-like penalty (controls for correlated features) and lasso penalty (variable selection).
 
 ```{r lasso, eval = F}
-lasso_model = train(win_place_perc ~ ., data = train_solo, method = "glmnet", trControl = tc)
+lasso_model = train(log(win_place_perc +1) ~ . - match_id - id, data = train_solo, 
+                    method = "glmnet", trControl = tc)
 summary(lasso_model)
 ```
 
 ### Random Forest
 
 ```{r rf, eval = F}
-rf_model = train(win_place_perc ~ ., data = train_solo, method = "rf", trControl = tc)
+rf_model = train(log(win_place_perc+1) ~ . - match_id - id, data = train_solo, method = "rf", trControl = tc)
 summary(rf_model)
 ```
 
