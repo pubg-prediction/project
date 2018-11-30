@@ -9,7 +9,7 @@ output:
 
 ```{r include = F}
 knitr::opts_chunk$set(include = TRUE, comment = NA, warning = FALSE, 
-                      message = FALSE, cache = TRUE, fig.align = 'center')
+                      message = FALSE, cache = FALSE, fig.align = 'center')
 ```
 
 ```{r packages, include = F, cache = F}
@@ -180,7 +180,6 @@ Some interesting relationships between the features and the finish percentile:
 
 - **Distance Traveled** (`walk_distance`, `swim_distance`, and `ride_distance`): Players who finish higher tend to have walked farther. This is likely because they simply survive longer and are force to travel to stay in the safe zone, whereas players who die early don't get a chance to travel very far. Both swimming and riding in vehicles are rare occurrences, though it appears that players who finish higher also tend to do more of both.
 
-
 (Additional notes to ourselves regarding some features of the data we might want to look at):
 
 * `kill_place`, `kill_points`, `kills`, and `win_points` follow bimodal distributions. This may reflect the play-styles of each player. Players who land in populated areas are more likely to encounter other players, resulting in a higher porbability of dying or a larger number of kills if the player survives. Thus, we can partition players in the 10th percentile finish into two categories: a skilled player who but dies early due to dropping in a populated location, but due to their skill acquires a large number of kills or a less-skilled player who dies early due to lack of skill despite dropping in a less populated location. 
@@ -207,19 +206,17 @@ corrplot(corr_matrix, method = "color", type = "upper")
 We will fit the following models:
 
 1. Linear regression
-2. Random forest
-3. A few others in the caret package
+2. Elastic net regression
+3. Random forest
+4. Any others in the caret package?
 
 ### Linear Regression
-First, we fit a linear regression model with 10-fold cross-validation. Since the final win percentage must be a value beteen 0 and 1, we log-transform `1 + win_place_perc` where the `1` is added to ensure all values are defined. The initial model will include all covariates except for the match ID and player ID. These two variables were excluded for two reasons: 
 
-1. The size of the resulting model exhausted the vector memory
-2. Both of these variables should not have an impact on the final win percentage of a player as the players in a game are assumed to be randomly selected. Additionally, the player ID does not affect how much data we have on a player as no player appears in more than one game in this data set, so including player ID would be equivalent to adding meaningless dummy variables.
-
+First, we fit a linear regression model with 5-fold cross-validation. Since the final win percentage must be a value beteen 0 and 1, we log-transform `1 + win_place_perc` where the `1` is added to ensure all values are defined. The initial model will include all features except for the match ID and player ID, since neither feature is going to generalize for predicting new games, which is what we are interested in. 
 
 ```{r lm}
 set.seed(1)
-tc = trainControl(method = "cv", number = 10)
+tc = trainControl(method = "cv", number = 5)
 
 # Fit linear model using step-wise model selection using AIC
 lr_model = train(log(win_place_perc + 1) ~ . - match_id - id, data = train_solo, 
@@ -227,11 +224,13 @@ lr_model = train(log(win_place_perc + 1) ~ . - match_id - id, data = train_solo,
 summary(lr_model)
 
 # Look at relative importance of individual predictors in the model
-varImp(lr_model$finalModel) %>% mutate(variable = rownames(.)) %>%
+varImp(lr_model$finalModel) %>% 
+  mutate(variable = rownames(.)) %>%
   arrange(desc(Overall))
 
 # Look at plot of predicted values versus true values on training set
-train_solo %>% mutate(predicted = exp(lr_model$finalModel$fitted.values)-1) %>%
+train_solo %>% 
+  mutate(predicted = exp(lr_model$finalModel$fitted.values)-1) %>%
   ggplot(aes(x = predicted, y = win_place_perc)) +
   geom_point() +
   labs(title = "Predicted Versus Actual Win Place Percentage in the Training Set", 
@@ -240,7 +239,9 @@ train_solo %>% mutate(predicted = exp(lr_model$finalModel$fitted.values)-1) %>%
   theme_bw()
 ```
 
-As we noted earlier in the data exploration, some of the covariates are correlated and some features seem to contain little information or signal (such as distance traveled or swam). Thus, we explore the use of elastic net regression which uses ridge-regression-like penalty to adjust for correlated features and lasso penalty to set the non-informative features to zero. 
+### Elastic net regression
+
+As we noted earlier in the data exploration, some of the features are highly correlated and/or seem to provide little signal (such as distance traveled). To solve these issues, we implement elastic net regression which uses a ridge-regression-like penalty to adjust for correlated features and lasso penalty to set the non-informative features to zero. 
 
 ```{r lasso}
 # Fit lasso_model using glmnet
@@ -257,7 +258,8 @@ varImp(lasso_model$finalModel) %>% mutate(variable = rownames(.)) %>%
 
 # Look at plot of predicted values versus true values on training set
 lasso_fitted = predict(lasso_model, train_solo)
-train_solo %>% mutate(predicted = exp(lasso_fitted)-1) %>%
+train_solo %>% 
+  mutate(predicted = exp(lasso_fitted)-1) %>%
   ggplot(aes(x = predicted, y = win_place_perc)) +
   geom_point() +
   labs(title = "Predicted Versus Actual Win Place Percentage in the Training Set", 
@@ -267,51 +269,36 @@ train_solo %>% mutate(predicted = exp(lasso_fitted)-1) %>%
 ```
 
 ### Random Forest
+
+To account for correlation between features, another option is to use a random forest classifier. We train a random forest model below. 
+
 ```{r rf, eval = F}
 rf_model = train(log(win_place_perc + 1) ~ . - match_id - id, data = train_solo, 
                  method = "rf", trControl = tc)
 print(rf_model)
 ```
 
+### Comparison of Models with Cross-Validated MSE
+
+Here we can provide a table (or plot) of MSEs (or some metric representing accuracy, caret probably has a default) for each model. Then we say X model has the highest accuracy.
+
 ### Evaluating Model Performance on the Test Set
+
+As we have found that X model has the highest accuracy in the training set, we validate our results on an independent test set. 
+
 ```{r lr_test}
 # Linear regression
 lr_pred = predict(lr_model, newdata = test_solo)
-
-# Plot Actual vs. Predicted
-test_solo %>% mutate(predict = lr_pred) %>%
-  ggplot(aes(x = exp(predict)-1, y = win_place_perc)) +
-  geom_point() + 
-  geom_abline(slope = 1, intercept = 0, color = 'red') +
-  labs(title = "Predicted Versus Actual Win Place Percentage in the Test Set", 
-       x = "Predicted Win Place Percentage", y = "Actual Win Place Percentage") +
-  theme_bw()
 
 # Get MSE
 lr_MSE = mean((exp(lr_pred) - 1 - test_solo$win_place_perc)^2)
 ```
 
-```{r lasso_test}
-# Elastic net
-lasso_pred = predict(lasso_model, newdata = test_solo)
+On the test set, the model performance is X.
 
-# Plot Actual vs. Predicted
-test_solo %>% mutate(predict = lasso_pred) %>%
-  ggplot(aes(x = exp(predict)-1, y = win_place_perc)) +
-  geom_point() + 
-  geom_abline(slope = 1, intercept = 0, color = 'red') +
-  labs(title = "Predicted Versus Actual Win Place Percentage in the Test Set", 
-       x = "Predicted Win Place Percentage", y = "Actual Win Place Percentage") +
-  theme_bw()
-
-# Get MSE
-lasso_MSE = mean((exp(lasso_pred) - 1 - test_solo$win_place_perc)^2)
-```
 ### Summary of Models
-Comparison of model accuracies with a table or a plot. What is the highest accuracy we are able to achieve (with cross-validation)? What is that model's accuracy on the test set?
 
-There are many possible ways to evaluate accuracy. We can do MSE or we can count number of games we correctly predicted the winner for. I think that this section is probably going to be the least interesting one, so we don't have to spend too much time here.
-
+To summarize, we use a couple of different models to predict the win place percentage. With X as our metric, we found that performed best using 5-fold cross validation on the training set. On an independent test set, the accuracy was X. 
 
 ## Clustering and Features
 
@@ -391,14 +378,15 @@ data.frame(PC2 = pc$x[,2], PC3 = pc$x[,3]) %>%
 
 Our outcome variable `win_place_perc` is pretty well explained by the first princiapl component. There are also interesting clusters formed when we plot principal components 2 and 3 that we should investigate.
 
+Principal components regression. How does it compare to our earlier models?
+
 ## Questions:
 1. Do we want to engineer features and refit the data? Kill/damage, match characteristics, use of items, distance traveled?
 2. K-means clustering with k = 2? (One for 2 play styles: aggressive, hiding)
-3. What PC space do we want? looks like 4 -5 captures a decent amount of variance?
+3. What PC space do we want? looks like 4-5 captures a decent amount of variance?
 
 ## Feature Ranking
 
-Which features are most predictive? I think we will have a better idea of this after we run the models and do clustering. Based on what we know, we can summarize what we have learned, with some additional evidence.
-
+Which features are most predictive? The features that contribute to PC1 are likely to be predictive. Plot variable importance from models as well. 
 
 # Narrative and Summary
