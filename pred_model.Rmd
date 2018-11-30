@@ -93,13 +93,13 @@ solo_dat <- clean_dat %>%
 
 ## Training and Test Set 
 
-We are given a training set and a test set. The outcome variable for the test set will not be provided until the end of the Kaggle competition in Jan. 30th, 2019. Therefore, for the purposes of this project, we will only be using the provided training set. Due to computational costs, we will only use 50,000 observations (7% of the available data). Within this set, we will create our own "training" (80%) and "test" set (20%). For the rest of the document, the "training set" refers to the one we've created.
+We are given a training set and a test set. The outcome variable for the test set will not be provided until the end of the Kaggle competition in Jan. 30th, 2019. Therefore, for the purposes of this project, we will only be using the provided training set. Due to computational costs, we will only use 100,000 observations (7% of the available data). Within this set, we will create our own "training" (80%) and "test" set (20%). For the rest of the document, the "training set" refers to the one we've created.
 
 ```{r train_test_split}
 # Split into train and test set
 set.seed(1)
 solo_dat = solo_dat %>%
-  sample_n(50000)
+  sample_n(100000)
 
 train_ind = createDataPartition(y = solo_dat$win_place_perc, p = 0.8, list = F)
 train_solo = solo_dat %>%
@@ -274,17 +274,21 @@ predictions_solo %>%
 
 ## Random Forest
 
-To account for correlation between features, another option is to use a random forest model. Due to computational costs, we first select the top $5$ features determined by elastic net regression and only use those features to train the random forest model. Furthermore, we only use 100 trees.
+To account for correlation between features, another option is to use a random forest model. Due to computational costs, we make the following choices:
+
+1. Train only on 10,000 observations.
+2. Use only the top $10$ features determined by elastic net regression.
+3. Use 100 trees.
 
 ```{r rf}
 imp_features = varImp(lasso_model$finalModel) %>%  
   mutate(variable = rownames(.)) %>%
   arrange(desc(Overall)) %>%
-  slice(1:5) %>%
+  slice(1:10) %>%
   pull(variable)
 
 rf_model = train(as.formula(paste("win_place_perc ~ ", paste(imp_features, collapse = "+"))), 
-                 data = train_solo, method = "rf", ntree = 100, trControl = tc)
+                 data = sample_n(train_solo, 10000), method = "rf", ntree = 100, importance = T, trControl = tc)
 print(rf_model)
 
 # Add predictions to df
@@ -306,26 +310,53 @@ predictions_solo %>%
 
 ## Feature Ranking
 
-Which features are most predictive? With the generic `varImp` function, we can compare the relative importance of features. For the linear models, `varImp` is equivalent to the absolute value of the t-statistic. 
+Which features are most predictive? With the generic `varImp` function, we can compare the relative importance of features. The meaning of `varImp` for each model is:
+
+1. Linear regression: absolute value of the t-statistic
+2. Elastic net: absolute value of coefficients
+3. Random forest: importance scores, which corresponds to the decrease in out of bag accuracy if the feature is randomly permuted
 
 ```{r}
 # Table of variable importance scores
-lm_imp = varImp(lm_model$finalModel) %>%  # absolute value of t-statistic
+lm_imp = varImp(lm_model$finalModel) %>%        # absolute value of t-statistic
   mutate(variable = rownames(.)) %>%
-  arrange(desc(Overall))
+  arrange(desc(Overall)) %>%
+  rename(lm_imp = Overall)
 
-lasso_imp = varImp(lasso_model$finalModel) %>%  # absolute value of t-statistic
+lasso_imp = varImp(lasso_model$finalModel) %>%  # absolute value of coefficients
   mutate(variable = rownames(.)) %>%
-  arrange(desc(Overall))
+  arrange(desc(Overall)) %>%
+  rename(lasso_imp = Overall)
 
-rf_imp = varImp(rf_model$finalModel) %>%
+rf_imp = varImp(rf_model$finalModel) %>%        # importance scores
   mutate(variable = rownames(.)) %>%
-  arrange(desc(Overall))
+  arrange(desc(Overall)) %>%
+  rename(rf_imp = Overall)
 
-bind_rows(lm_imp, lasso_imp, rf_imp)
+imp = full_join(lm_imp, lasso_imp, by = "variable") %>%
+  full_join(., rf_imp, by = "variable") %>%
+  select(variable, everything()) %>%
+  mutate_at(vars(lm_imp:rf_imp), function(x){scale(x, center = F)}) %>%     # Normalize importance scores within models
+  drop_na()                                 # Drop features not used by random forest
+  
+imp$variable = factor(imp$variable, levels = imp$variable[order(imp$rf_imp, decreasing = T)])
+
+# Note: for some reason, can't do this step in mutate:
+imp = imp %>%
+  gather(model, importance, -variable)
+
+# Make a plot for variable importance
+imp %>%
+  ggplot(aes(x = variable, y = importance, fill = model)) +
+  geom_col(position = "dodge") + 
+  labs(title = "Variable Importance",
+       x = "Variable",
+       y = "Importance (Scaled)") +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-The top 5 features that are
+There is not much agreement in the features that each model regards to be important. This may be due to highly correlated features; for example, `kill_place` and `kill_streaks` are highly correlated and while the former is rated as highly important by the linear regression and random forest, the latter is rated as highly important by elastic net regression. We will continue investigate features in the dimension reduction and clustering section.
 
 ## Comparison of Models
 
@@ -354,7 +385,7 @@ predictions_solo %>%
 
 # Boxplots of mean absolute error
 predictions_solo %>%
-  gather(lm_ae, lasso_ae, rf_ae) %>%
+  gather(
 ```
 
 
