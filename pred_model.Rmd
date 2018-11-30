@@ -93,16 +93,20 @@ solo_dat <- clean_dat %>%
 
 ## Training and Test Set 
 
-We are given a training set and a test set. The outcome variable for the test set will not be provided until the end of the Kaggle competition in Jan. 30th, 2019. Therefore, for the purposes of this project, we will only be using the provided training set. Within the provided training set, we will create our own "training" (80%) and "test" set (20%). For the rest of the document, the training set we refer to is the one we've created.
+We are given a training set and a test set. The outcome variable for the test set will not be provided until the end of the Kaggle competition in Jan. 30th, 2019. Therefore, for the purposes of this project, we will only be using the provided training set. Within the provided training set, we will create our own "training" (50%) and "test" set (50%). For the rest of the document, the training set we refer to is the one we've created.
 
 ```{r train_test_split}
 # Split into train and test set
 set.seed(1)
-train_ind = createDataPartition(y = solo_dat$win_place_perc, p = 0.8, list = F)
+train_ind = createDataPartition(y = solo_dat$win_place_perc, p = 0.5, list = F)
 train_solo = solo_dat %>%
   slice(train_ind)
 test_solo = solo_dat %>%
   slice(-train_ind)
+```
+
+```{r}
+glimpse(train_solo)
 ```
 
 # Exploratory Data Analysis
@@ -199,7 +203,7 @@ corr_matrix = train_solo %>%
 corrplot(corr_matrix, method = "color", type = "upper")
 ```
 
-# Prediction Models
+# Prediction Models & Feature Ranking
 
 We will fit the following models:
 
@@ -218,22 +222,21 @@ tc = trainControl(method = "cv", number = 5)
 
 # Fit linear model using step-wise model selection using AIC
 lr_model = train(log(win_place_perc + 1) ~ . - match_id - id, data = train_solo, 
-                 method = "lmStepAIC", trControl = tc, trace = FALSE)
+                 method = "lm", trControl = tc, trace = FALSE)
 summary(lr_model)
 
-# Look at relative importance of individual predictors in the model
-varImp(lr_model$finalModel) %>% 
-  mutate(variable = rownames(.)) %>%
-  arrange(desc(Overall))
+# Plot predicted values versus true values on training set
+predictions_solo = data.frame(win_place_perc = train_solo$win_place_perc,
+                              lm_pred = exp(lr_model$finalModel$fitted.values) - 1) %>%
+  mutate(lm_pred = case_when(lm_pred < 0 ~ 0,
+                             lm_pred > 1 ~ 1,
+                             lm_pred >= 0 & lm_pred <= 1 ~ lm_pred)) # Constrain values to [0,1]
 
-# Look at plot of predicted values versus true values on training set
-train_solo %>% 
-  mutate(predicted = exp(lr_model$finalModel$fitted.values)-1) %>%
-  ggplot(aes(x = predicted, y = win_place_perc)) +
-  geom_point() +
-  labs(title = "Predicted Versus Actual Win Place Percentage in the Training Set", 
+predictions_solo %>%
+  ggplot(aes(x = lm_pred, y = win_place_perc)) +
+  geom_point(alpha = 0.5, size = 0.1) +
+  labs(title = "Predicted Versus Actual Win Place Percentage (Linear Regression)", 
        x = "Predicted Win Place Percentage", y = "Actual Win Place Percentage") +
-  geom_abline(intercept = 0, slope = 1, color = 'red') +
   theme_bw()
 ```
 
@@ -243,26 +246,23 @@ As we noted earlier in the data exploration, some of the features are highly cor
 
 ```{r lasso}
 # Fit lasso_model using glmnet
-lasso_model = train(log(win_place_perc +1) ~ . - match_id - id, data = train_solo, 
+lasso_model = train(log(win_place_perc + 1) ~ . - match_id - id, data = train_solo, 
                     method = "glmnet", trControl = tc)
 print(lasso_model)
-
-# Look at coefficients of final model
 coef(lasso_model$finalModel, lasso_model$bestTune$lambda)
 
-# Look at relative importance of predictors in the model
-varImp(lasso_model$finalModel) %>% mutate(variable = rownames(.)) %>%
-  arrange(desc(Overall))
-
 # Look at plot of predicted values versus true values on training set
-lasso_fitted = predict(lasso_model, train_solo)
-train_solo %>% 
-  mutate(predicted = exp(lasso_fitted)-1) %>%
-  ggplot(aes(x = predicted, y = win_place_perc)) +
-  geom_point() +
-  labs(title = "Predicted Versus Actual Win Place Percentage in the Training Set", 
+predictions_solo = predictions_solo %>%
+  mutate(lasso_pred = exp(predict(lasso_model, train_solo)) - 1,
+         lasso_pred = case_when(lasso_pred < 0 ~ 0,
+                                lasso_pred > 1 ~ 1,
+                                lasso_pred >=0 & lasso_pred <= 1 ~ lasso_pred)) # Constrain values to [0,1]
+
+predictions_solo %>%
+  ggplot(aes(x = lasso_pred, y = win_place_perc)) +
+  geom_point(alpha = 0.5, size = 0.1) +
+  labs(title = "Predicted Versus Actual Win Place Percentage (Elastic Net)", 
        x = "Predicted Win Place Percentage", y = "Actual Win Place Percentage") +
-  geom_abline(intercept = 0, slope = 1, color = 'red') +
   theme_bw()
 ```
 
@@ -276,11 +276,38 @@ rf_model = train(log(win_place_perc + 1) ~ . - match_id - id, data = train_solo,
 print(rf_model)
 ```
 
+
+## Feature Ranking
+
+Which features are most predictive?
+
+```{r}
+# Table of variable importance scores
+varImp(lr_model$finalModel) %>% 
+  mutate(variable = rownames(.)) %>%
+  arrange(desc(Overall))
+
+varImp(lasso_model$finalModel) %>% 
+  mutate(variable = rownames(.)) %>%
+  arrange(desc(Overall))
+
+varImp(rf_model$finalModel) %>%
+  mutate(variable = rownames(.)) %>%
+  arrange(desc(Overall))
+```
+
+
 ## Comparison of Models
+
+```{r}
+# Table goes here
+lr_MSE = mean((exp(lr_model$finalModel$fitted.values) - 1 - test_solo$win_place_perc)^2)
+```
+
 
 Here we can provide a table (or plot) of MSE (or some metric representing accuracy, caret probably has a default) for each model. Then we say X model has the highest accuracy.
 
-## Predictive Performance
+## Performance on Test Set
 
 As we have found that X model has the highest accuracy in the training set, we validate our results on an independent test set. 
 
@@ -387,9 +414,5 @@ To-do:
 
 ## Summary
 
-
-# Feature Ranking
-
-Which features are most predictive? The features that contribute to PC1 are likely to be predictive. Use variable importance scores from models and PCA to discuss this.
 
 # Narrative and Summary
