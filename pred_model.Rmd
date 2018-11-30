@@ -215,18 +215,22 @@ corrplot(corr_matrix, method = "color", type = "upper")
 
 # Prediction Models & Feature Ranking
 
-We will fit the following models:
+In this section, we aim to answer our first two questions:
+
+1. **Model Prediction Accuracy**: How well can we predict a player's finish placement?
+2. **Feature Ranking**: What player actions or statistics are most predictive of their finish placement?
+
+To answer these questions, we will fit the following models, test our model on an independent test set, and examine feature importance scores:
 
 1. Linear regression (to constrain outcome, need to use a GLM with beta or binomial distrib)
 2. Elastic net regression
 3. Random forest
-4. Any others in the caret package?
 
 In training our models, unless stated otherwise, we will include all features except for the match ID and player ID, since neither feature is going to generalize for predicting new games, which is what we are interested in. 
 
 ## Linear Regression
 
-First, we fit a linear regression model with 5-fold cross-validation. Since the final win percentage is a value beteen 0 and 1, we log-transform `1 + win_place_perc` where the `1` is added to ensure all values are defined. However, this still doesn't guarantee that the predicted values will be between 0 and 1, so we constrain the predicted value to be 0 if it is negative and 1 if it is above 1. 
+First, we fit a linear regression model with 5-fold cross-validation. Since the win place percentage is a value beteen 0 and 1, we apply a log transformation (adding 1 to ensure all values are defined), so that it better fulfills the assumption that $y$ is a continuous variable on the real line. However, this still doesn't guarantee that the predicted values will be between 0 and 1, so we constrain the predicted value to be 0 if it is negative and 1 if it is above 1. 
 
 ```{r lm}
 set.seed(1)
@@ -255,7 +259,7 @@ predictions_solo %>%
 
 ## Elastic net regression
 
-As we noted earlier in the data exploration, some of the features are highly correlated and/or seem to provide little signal (such as distance traveled). To solve these issues, we implement elastic net regression which uses a ridge-regression-like penalty to adjust for correlated features and lasso penalty to set the non-informative features to zero. Using cross-validation in the training set, we tune regularization hyperparameters. 
+As we noted earlier in the data exploration, some of the features are highly correlated and/or seem to provide little signal (such as distance traveled). To solve these issues, we implement elastic net regression which uses a ridge-regression-like penalty to adjust for correlated features and lasso penalty to shrink non-informative features to zero. Using 5-fold cross-validation in the training set, we tune regularization hyperparameters. 
 
 ```{r lasso}
 set.seed(1)
@@ -283,13 +287,13 @@ predictions_solo %>%
 
 ## Random Forest
 
-To account for correlation between features, another option is to use a random forest model. Due to computational costs, we make the following choices:
+To account for correlation between features, another option is to use a random forest model. Ensemble methods like random forest are also known to generally perform better than regression models. Due to computational costs, however, we make the following choices:
 
-1. Train only on 10,000 observations.
-2. Use only the top $10$ features determined by elastic net regression.
-3. Use 100 trees.
+1. Train the random forest model on 10,000 observations (as opposed to 60,000 observations).
+2. Use only the top 10 features (out of 19 features) determined by elastic net regression.
+3. Use 100 trees in the random forest.
 
-Using cross-validation, we tune hyperparameters for random forest.
+Again with 5-fold cross-validation, we tune hyperparameters for random forest.
 
 ```{r rf}
 set.seed(1)
@@ -327,7 +331,7 @@ Which features are most predictive? With the generic `varImp` function, we can c
 
 1. Linear regression: absolute value of the t-statistic
 2. Elastic net: absolute value of coefficients
-3. Random forest: importance scores, which corresponds to the decrease in out of bag accuracy if the feature is randomly permuted
+3. Random forest: importance scores, which corresponds to the decrease in out of bag accuracy when each feature is randomly permuted
 
 ```{r}
 # Table of variable importance scores
@@ -372,17 +376,17 @@ imp %>%
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-There is not much agreement in the features that each model regards to be important. This may be due to highly correlated features; for example, `kill_place` and `kill_streaks` are highly correlated and while the former is rated as highly important by the linear regression and random forest, the latter is rated as highly important by elastic net regression. We will continue investigating features and features importance in the dimension reduction and clustering section.
+There is not much agreement in the features that each model regards to be important. This may be due to highly correlated features; for example, `kill_place` and `kill_streaks` are highly correlated and while the former is rated as highly important by the linear regression and random forest, the latter is rated as highly important by elastic net regression. For now, we will postpone the question of feature importance and continue investigating this question in the dimension reduction and clustering section.
 
 ## Comparison of Models
 
-We will compare models with the following metrics:
+We will compare our models with the following metrics on the validation set:
 
-1. Mean absolute error (MAE): Represents the average absolute deviation. $\frac{\sum_{i=1}^n |\hat{y}_i - y_i|}{n}$
+1. **Mean absolute error (MAE)**: Represents the average absolute deviation. 
+$$MAE = \frac{\sum_{i=1}^n |\hat{y}_i - y_i|}{n}$$
 
-2. Self-defined accuracy metric (SDAM): If the predicted outcome is within 5% of the actual win place percentage, we classify it as a "correct" prediction. Otherwise, it is an incorrect prediction. $\frac{\sum_{i=1}^n \mathbb{1}_{|hat{y}_i - y_i| <= 0.05}}{n}$
-
-We will compare the models using these metrics on the validation set.
+2. **Self-defined accuracy metric (SDAM)**: If the predicted outcome is within 5% of the actual win place percentage, we classify it as a "correct" prediction. Otherwise, it is an incorrect prediction. 
+$$SDAM = \frac{\sum_{i=1}^n \mathbb{1}_{|\hat{y}_i - y_i| <= 0.05}}{n}$$
 
 ```{r}
 predictions_solo = predictions_solo %>%
@@ -422,29 +426,64 @@ metrics_solo %>%
   labs(title = "Comparison of SDAM", x = "Model", y = "SDAM") +
   scale_x_discrete(labels = c("Elastic Net", "Linear", "Random Forest")) +
   theme_bw()
+
+# Plot percent of observations with predictions falling within x% of true outcome
+cutoff = seq(0, 0.5, by = 0.01)
+prop_lm = sapply(cutoff, function(x) mean(predictions_solo$lm_ae < x))
+prop_lasso = sapply(cutoff, function(x) mean(predictions_solo$lasso_ae < x))
+prop_rf = sapply(cutoff, function(x) mean(predictions_solo$rf_ae < x))
+data.frame(cutoff = rep(cutoff, 3), 
+           prop = c(prop_lm, prop_lasso, prop_rf),
+           model = rep(c("Linear", "Elastic Net", "Random Forest"), each = length(cutoff))) %>%
+  ggplot(aes(x = cutoff, y = prop, color = model)) + 
+  geom_point() +
+  geom_line() +
+  labs(title = "Proportion of Predictions within X% of Actual Win Place Percentage",
+       x = "Predicted - Actual Win Place Percentage",
+       y = "Proportion",
+       color = "Model") +
+  theme_bw()
 ```
 
-From the above plots, we can see that random forest performs best on both metrics. This is despite the fact that random forest was trained on only 10,000 observations as opposed to 60,000 observations. Its MAE is 0.054, which means that on average, the predicted win place percentage is 0.057 off from the true win place percentage. Its SDAM is 0.604, which means that for 60.4% of observations in our validation set, the predicted value is within 5% of the true win place percentage.
+From the above plots, we can see that random forest performs best on both metrics. This is despite the restrictions we had to place in order to run the random forest model in a reasonable amount of time. Its MAE is 0.054, which means that on average, the predicted win place percentage is 0.057 off from the true win place percentage. Its SDAM is 0.604, which means that for 60.4% of observations in our validation set, the predicted value is within 5% of the true win place percentage.
 
 ## Performance on Test Set
 
 As we have found that the random forest model has the highest accuracy in the training set, we validate our results on an independent test set. 
 
 ```{r lm_test}
-pred_val_test = data.frame(rf_test_pred = predict(rf_model, test_solo)) %>%
+pred_test = data.frame(rf_test_pred = predict(rf_model, test_solo)) %>%
   mutate(rf_test_ae = abs(rf_test_pred - test_solo$win_place_perc),
-         rf_test_correct = rf_test_ae <= 0.05) %>%
+         rf_test_correct = rf_test_ae <= 0.05)
+
+# Plot percent of observations with predictions falling within x% of true outcome
+cutoff = seq(0, 0.5, by = 0.01)
+prop_test = sapply(cutoff, function(x) mean(pred_test$rf_test_ae < x))
+data.frame(cutoff = rep(cutoff, 2), 
+           prop = c(prop_rf, prop_test),
+           set = rep(c("Validation", "Test"), each = length(cutoff))) %>%
+  ggplot(aes(x = cutoff, y = prop, color = set)) + 
+  geom_point() +
+  geom_line() +
+  theme_bw() +
+  labs(title = "Proportion of Predictions within X% of Actual Win Place Percentage",
+       x = "Predicted - Actual Win Place Percentage",
+       y = "Proportion",
+       color = "Dataset") +
+  theme_bw()
+
+pred_test_metrics = pred_test %>%
   summarize(rf_test_mae = mean(rf_test_ae),
             rf_test_sdam = mean(rf_test_correct))
 ```
 
-On the test set, random forest has a MAE of `r round(pred_val_test$rf_test_mae, 3)` and a SDAM of `r round(pred_val_test$rf_test_sdam, 3)`, which is similar to what we saw in the validation set.
+On the test set, random forest has a MAE of `r round(pred_test_metrics$rf_test_mae, 3)` and a SDAM of `r round(pred_test_metrics$rf_test_sdam, 3)`, which is similar to what we saw in the validation set. We can also see in the above plot that the random forest model performs equally well in the test set as in the validation set.
 
 ## Summary
 
 **Best-performing model: Random forest**
 
-We use three different models to predict the win place percentage: linear regression, elastic net regression, and random forest. Using mean absolute error (MAE) and a similar, self-defined accuracy metric (SDAM) quantifying the proportion of predictions that fall within 5% of the true win place percentage, we found that the random forest model performed best using 5-fold cross validation on the training set. On an independent test set, we achieved a MAE of `r round(pred_val_test$rf_test_mae, 3)` and a SDAM of `r round(pred_val_test$rf_test_sdam, 3)`.
+We use three different models to predict the win place percentage: linear regression, elastic net regression, and random forest. Using mean absolute error (MAE) and a similar, self-defined accuracy metric (SDAM) quantifying the proportion of predictions that fall within 5% of the true win place percentage, we found that the random forest model performed best using 5-fold cross validation on the training set. On an independent test set, we achieved a MAE of `r round(pred_test_metrics$rf_test_mae, 3)` and a SDAM of `r round(pred_test_metrics$rf_test_sdam, 3)`.
 
 **High predictive accuracy for top players**
 
@@ -461,6 +500,7 @@ We can try the following and see which one gives us a better story:
 ## Principal Components Analysis
 
 ```{r pca}
+set.seed(1)
 # PCA
 X = train_solo %>%
   select(-win_place_perc, -id, -match_id) %>%
@@ -491,9 +531,9 @@ fviz_pca_var(pc,
 
 The first principal component explains much of the variance we see in our features (29.6%), while the second to sixth principal component all explain between 5 to 10%. In the second plot, we can observe each feature's contribution to the first two principal components and their correlations.
 
-1. **PC 1**: It appears that the first principal component comprises of features related to damage and kills, primarily the features `kills`, `kill_place`, `damage_dealt`. To a lesser extent, features like `damage_dealt`, `longest_kill`, `headshot_kills`, `boosts`, and `heals` also exhibit contribution primarily to the first principal component. 
+1. **PC 1**: The first principal component comprises of features related to damage and kills, primarily the features `kills`, `kill_place`, `damage_dealt`. To a lesser extent, features like `damage_dealt`, `longest_kill`, `headshot_kills`, `boosts`, and `heals` also exhibit contribution primarily to the first principal component. 
 
-2. **PC 2**: The second principal component is characterized by details related to the match setting, i.e. `num_groups` and `max_place`, as well as `win_points` and `kill_points`, which I don't remember what they mean.
+2. **PC 2**: The second principal component is characterized by details related to the match setting, i.e. `num_groups` and `max_place`.
 
 Remaining features like `road_kills`, `vehicle_destroys`, `ride_distance` do not contribute much to either of the first two principal components. We should investigate if they do to the third principal component.
 
@@ -501,10 +541,9 @@ Remaining features like `road_kills`, `vehicle_destroys`, `ride_distance` do not
 # Plot points on principal components 1 and 2 
 data.frame(PC1 = pc$x[,1], PC2 = pc$x[,2]) %>%
   ggplot(aes(PC1, PC2, color = train_solo$win_place_perc)) +
-  geom_point(aes(alpha = 0.5)) +
+  geom_point(alpha = 0.5) +
   labs(title = "Win Place Percent of Training Data by PC1 and PC2",
        color = "Win Place Percent") +
-  guides(alpha = F) +
   theme_bw()
 
 # Plot point on principal components 1 and 3
@@ -519,18 +558,18 @@ data.frame(PC1 = pc$x[,1], PC3 = pc$x[,3]) %>%
 # Plot point on principal components 2 and 3
 data.frame(PC2 = pc$x[,2], PC3 = pc$x[,3]) %>%
   ggplot(aes(PC2, PC3, color = train_solo$win_place_perc)) +
-  geom_point(aes(alpha = 0.5)) +
+  geom_point(alpha = 0.5) +
   labs(title = "Win Place Percent of Training Data by PC2 and PC3",
        color = "Win Place Percent") +
-  guides(alpha = F) +
   theme_bw()
 ```
 
-Our outcome feature `win_place_perc` is pretty well explained by the first princiapl component. 
+Our outcome feature `win_place_perc` is pretty well explained by the first principal component. 
 
 To-do: 
 1. Investigate why plotting PC3 and PC2 lead to clusters.
 2. Principal components regression (using 4-5 PCs). How does it compare to our earlier models?
+
 ```{r}
 # method = "pcr"
 
