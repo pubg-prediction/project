@@ -188,7 +188,7 @@ train_solo %>%
 
 Some interesting relationships between the features and the finish percentile:
 
-- **Use of Items** (`boosts`, `heals`, and `weapons_acquired`): Players who finish higher tend to have used more boosts and healing items, and acquired more weapons. This is expected since they stayed in the game for a longer period and have more time to collect and use items. However, it would be interesting to explore which of these variables is most predictive of a high finish placement.
+- **Use of Items** (`boosts`, `heals`, and `weapons_acquired`): Players who finish higher tend to have used more boosts and healing items, and acquired more weapons. This is expected since they stayed in the game for a longer period and have more time to collect and use items. However, it would be interesting to explore which of these features is most predictive of a high finish placement.
 
 - **Kills & Damage** (`damage_dealt`, `kill_place`, and `kills`): Players who finish higher tend to have more kills. They also tend to have dealt more damage. However, in the top finishing group, there is a wide variety in how much damage they inflict. This could potentially indicate strategies that differ in their level of aggressiveness during the course of the game but are similarly successful in achieving a high placement. 
 
@@ -362,9 +362,12 @@ imp = imp %>%
 imp %>%
   ggplot(aes(x = variable, y = importance, fill = model)) +
   geom_col(position = "dodge") + 
-  labs(title = "Variable Importance",
-       x = "Variable",
-       y = "Importance (Scaled)") +
+  labs(title = "Feature Ranking",
+       x = "Feature",
+       y = "Importance (Scaled)",
+       fill = "Model") +
+  scale_fill_manual(labels = c("Elastic Net", "Linear", "Random Forest"),
+                    values = c("#999999", "#E69F00", "#56B4E9")) +
   theme_bw() + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
@@ -407,9 +410,8 @@ metrics_solo %>%
   ggplot(aes(x = model, y = value, label = round(value, 3))) +
   geom_col() +
   geom_label() +
-  labs(title = "Comparison of MAE",
-       x = "Model",
-       y = "MAE") +
+  labs(title = "Comparison of MAE", x = "Model", y = "MAE") +
+  scale_x_discrete(labels = c("Elastic Net", "Linear", "Random Forest")) +
   theme_bw()
 
 metrics_solo %>%
@@ -417,9 +419,8 @@ metrics_solo %>%
   ggplot(aes(x = model, y = value, label = round(value, 3))) + 
   geom_col() + 
   geom_label() + 
-  labs(title = "Comparison of SDAM",
-       x = "Model",
-       y = "SDAM") +
+  labs(title = "Comparison of SDAM", x = "Model", y = "SDAM") +
+  scale_x_discrete(labels = c("Elastic Net", "Linear", "Random Forest")) +
   theme_bw()
 ```
 
@@ -430,12 +431,6 @@ From the above plots, we can see that random forest performs best on both metric
 As we have found that the random forest model has the highest accuracy in the training set, we validate our results on an independent test set. 
 
 ```{r lm_test}
-predictions_solo = predictions_solo %>%
-  mutate(lm_ae = abs(lm_pred - win_place_perc),
-         lasso_ae = abs(lasso_pred - win_place_perc),
-         rf_ae = abs(rf_pred - win_place_perc))
-
-# Linear regression
 pred_val_test = data.frame(rf_test_pred = predict(rf_model, test_solo)) %>%
   mutate(rf_test_ae = abs(rf_test_pred - test_solo$win_place_perc),
          rf_test_correct = rf_test_ae <= 0.05) %>%
@@ -447,7 +442,13 @@ On the test set, random forest has a MAE of `r round(pred_val_test$rf_test_mae, 
 
 ## Summary
 
+**Best-performing model: Random forest**
+
 We use three different models to predict the win place percentage: linear regression, elastic net regression, and random forest. Using mean absolute error (MAE) and a similar, self-defined accuracy metric (SDAM) quantifying the proportion of predictions that fall within 5% of the true win place percentage, we found that the random forest model performed best using 5-fold cross validation on the training set. On an independent test set, we achieved a MAE of `r round(pred_val_test$rf_test_mae, 3)` and a SDAM of `r round(pred_val_test$rf_test_sdam, 3)`.
+
+**High predictive accuracy for top players**
+
+With the random forest model in particular, we can also see from its figure of predicted vs actual values that our predictions are more accurate for players with higher placements. This makes sense since there should be increasingly higher demands on skill the higher you place and therefore more signal in the data. In other words, the difference in skill between a player who places 60 vs a player who places 90 out of 100 is likely much smaller than the difference between a player who places 1 vs a player who places 30 out of 100. As a result, we can more accurately distinguish between places the higher you place. 
 
 # Dimension reduction and clustering
 
@@ -479,8 +480,8 @@ data.frame(cumvar = cumsum(pc$sdev^2/sum(pc$sdev^2))) %>%
        x = "K", y = "Percent of Variance Explained") +
   theme_bw()
 
-# Plot variables in terms of the first two principal components
-# Positively correlated variables point in the same direction, negative correlated variables point to opposite direction
+# Plot features in terms of the first two principal components
+# Positively correlated features point in the same direction, negative correlated features point to opposite direction
 fviz_pca_var(pc,
              col.var = "contrib", # Color by contributions to the PC
              gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
@@ -525,7 +526,7 @@ data.frame(PC2 = pc$x[,2], PC3 = pc$x[,3]) %>%
   theme_bw()
 ```
 
-Our outcome variable `win_place_perc` is pretty well explained by the first princiapl component. 
+Our outcome feature `win_place_perc` is pretty well explained by the first princiapl component. 
 
 To-do: 
 1. Investigate why plotting PC3 and PC2 lead to clusters.
