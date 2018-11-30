@@ -88,17 +88,20 @@ solo_dat <- clean_dat %>%
          rank_points = ifelse(rank_points == -1, NA, rank_points),
          id = as.factor(id), 
          match_id = as.factor(match_id)) %>%
-  select(-rank_points)    # Variable is being deprecated
+  select(-kill_points, -win_points, -rank_points)    # Variables being deprecated
 ```
 
 ## Training and Test Set 
 
-We are given a training set and a test set. The outcome variable for the test set will not be provided until the end of the Kaggle competition in Jan. 30th, 2019. Therefore, for the purposes of this project, we will only be using the provided training set. Within the provided training set, we will create our own "training" (50%) and "test" set (50%). For the rest of the document, the training set we refer to is the one we've created.
+We are given a training set and a test set. The outcome variable for the test set will not be provided until the end of the Kaggle competition in Jan. 30th, 2019. Therefore, for the purposes of this project, we will only be using the provided training set. Due to computational costs, we will only use 50,000 observations (7% of the available data). Within this set, we will create our own "training" (80%) and "test" set (20%). For the rest of the document, the "training set" refers to the one we've created.
 
 ```{r train_test_split}
 # Split into train and test set
 set.seed(1)
-train_ind = createDataPartition(y = solo_dat$win_place_perc, p = 0.5, list = F)
+solo_dat = solo_dat %>%
+  sample_n(50000)
+
+train_ind = createDataPartition(y = solo_dat$win_place_perc, p = 0.8, list = F)
 train_solo = solo_dat %>%
   slice(train_ind)
 test_solo = solo_dat %>%
@@ -152,7 +155,6 @@ For most games, we have between 70% to 90% of the players' data, using `max_plac
 We first explored the distribution of each feature by the final finish percentile. Players were first grouped into the 0-19th, 20th-39th, 40th-59th, 60th-79th, or 80th-100th percentile finish. Then we plotted the density of features by percentile groups. Note that due to extreme outliers, we excluded the highest 1% of many of the features for clearer visualizations.
 
 ```{r plot_dist_of_features_by_percentile, fig.width = 10, fig.height = 12}
-set.seed(1)
 filter_vars = c("boosts", "damage_dealt", "headshot_kills", "heals", "kills", "longest_kill", "ride_distance", "swim_distance", "walk_distance", "weapons_acquired")
 train_solo %>% 
   filter_at(vars(filter_vars), all_vars(. < quantile(., 0.99, na.rm = T))) %>%   # Remove outliers
@@ -212,26 +214,29 @@ We will fit the following models:
 3. Random forest
 4. Any others in the caret package?
 
+In training our models, unless stated otherwise, we will include all features except for the match ID and player ID, since neither feature is going to generalize for predicting new games, which is what we are interested in. 
+
 ## Linear Regression
 
-First, we fit a linear regression model with 5-fold cross-validation. Since the final win percentage must be a value beteen 0 and 1, we log-transform `1 + win_place_perc` where the `1` is added to ensure all values are defined. The initial model will include all features except for the match ID and player ID, since neither feature is going to generalize for predicting new games, which is what we are interested in. 
+First, we fit a linear regression model with 5-fold cross-validation. Since the final win percentage is a value beteen 0 and 1, we log-transform `1 + win_place_perc` where the `1` is added to ensure all values are defined. However, this still doesn't guarantee that the predicted values will be between 0 and 1, so we constrain the predicted value to be 0 if it is negative and 1 if it is above 1. 
 
 ```{r lm}
 set.seed(1)
 tc = trainControl(method = "cv", number = 5)
 
 # Fit linear model using step-wise model selection using AIC
-lr_model = train(log(win_place_perc + 1) ~ . - match_id - id, data = train_solo, 
-                 method = "lm", trControl = tc, trace = FALSE)
-summary(lr_model)
+lm_model = train(log(win_place_perc + 1) ~ . - match_id - id, data = train_solo, 
+                 method = "lm", trControl = tc)
+summary(lm_model)
 
-# Plot predicted values versus true values on training set
+# Save predictions
 predictions_solo = data.frame(win_place_perc = train_solo$win_place_perc,
-                              lm_pred = exp(lr_model$finalModel$fitted.values) - 1) %>%
+                              lm_pred = exp(lm_model$finalModel$fitted.values) - 1) %>%
   mutate(lm_pred = case_when(lm_pred < 0 ~ 0,
                              lm_pred > 1 ~ 1,
                              lm_pred >= 0 & lm_pred <= 1 ~ lm_pred)) # Constrain values to [0,1]
 
+# Plot predicted vs true values
 predictions_solo %>%
   ggplot(aes(x = lm_pred, y = win_place_perc)) +
   geom_point(alpha = 0.5, size = 0.1) +
@@ -251,13 +256,14 @@ lasso_model = train(log(win_place_perc + 1) ~ . - match_id - id, data = train_so
 print(lasso_model)
 coef(lasso_model$finalModel, lasso_model$bestTune$lambda)
 
-# Look at plot of predicted values versus true values on training set
+# Add predictions to df
 predictions_solo = predictions_solo %>%
   mutate(lasso_pred = exp(predict(lasso_model, train_solo)) - 1,
          lasso_pred = case_when(lasso_pred < 0 ~ 0,
                                 lasso_pred > 1 ~ 1,
                                 lasso_pred >=0 & lasso_pred <= 1 ~ lasso_pred)) # Constrain values to [0,1]
 
+# Plot predicted vs true values
 predictions_solo %>%
   ggplot(aes(x = lasso_pred, y = win_place_perc)) +
   geom_point(alpha = 0.5, size = 0.1) +
@@ -268,62 +274,106 @@ predictions_solo %>%
 
 ## Random Forest
 
-To account for correlation between features, another option is to use a random forest classifier. We train a random forest model below. 
+To account for correlation between features, another option is to use a random forest model. Due to computational costs, we first select the top $5$ features determined by elastic net regression and only use those features to train the random forest model. Furthermore, we only use 100 trees.
 
-```{r rf, eval = F}
-rf_model = train(log(win_place_perc + 1) ~ . - match_id - id, data = train_solo, 
-                 method = "rf", trControl = tc)
+```{r rf}
+imp_features = varImp(lasso_model$finalModel) %>%  
+  mutate(variable = rownames(.)) %>%
+  arrange(desc(Overall)) %>%
+  slice(1:5) %>%
+  pull(variable)
+
+rf_model = train(as.formula(paste("win_place_perc ~ ", paste(imp_features, collapse = "+"))), 
+                 data = train_solo, method = "rf", ntree = 100, trControl = tc)
 print(rf_model)
+
+# Add predictions to df
+predictions_solo = predictions_solo %>%
+  mutate(rf_pred = predict(rf_model, train_solo),
+         rf_pred = case_when(rf_pred < 0 ~ 0,
+                             rf_pred > 1 ~ 1,
+                             rf_pred >=0 & rf_pred <= 1 ~ rf_pred)) # Constrain values to [0,1]
+
+# Plot predicted vs true values
+predictions_solo %>%
+  ggplot(aes(x = rf_pred, y = win_place_perc)) +
+  geom_point(alpha = 0.5, size = 0.1) +
+  labs(title = "Predicted Versus Actual Win Place Percentage (Random forest)", 
+       x = "Predicted Win Place Percentage", y = "Actual Win Place Percentage") +
+  theme_bw()
 ```
 
 
 ## Feature Ranking
 
-Which features are most predictive?
+Which features are most predictive? With the generic `varImp` function, we can compare the relative importance of features. For the linear models, `varImp` is equivalent to the absolute value of the t-statistic. 
 
 ```{r}
 # Table of variable importance scores
-varImp(lr_model$finalModel) %>% 
+lm_imp = varImp(lm_model$finalModel) %>%  # absolute value of t-statistic
   mutate(variable = rownames(.)) %>%
   arrange(desc(Overall))
 
-varImp(lasso_model$finalModel) %>% 
+lasso_imp = varImp(lasso_model$finalModel) %>%  # absolute value of t-statistic
   mutate(variable = rownames(.)) %>%
   arrange(desc(Overall))
 
-varImp(rf_model$finalModel) %>%
+rf_imp = varImp(rf_model$finalModel) %>%
   mutate(variable = rownames(.)) %>%
   arrange(desc(Overall))
+
+bind_rows(lm_imp, lasso_imp, rf_imp)
 ```
 
+The top 5 features that are
 
 ## Comparison of Models
 
+We will compare models with the following metrics:
+
+1. Mean absolute error (MAE): Represents the average absolute deviation. $\frac{\sum_{i=1}^n |\hat{y}_i - y_i|}{n}$
+2. Self-defined accuracy metric (SDAM): If the predicted outcome is within 5% of the actual win place percentage, we classify it as a "correct" prediction. Otherwise, it is an incorrect prediction. $\frac{\sum_{i=1}^n \mathbb{1}_{|hat{y}_i - y_i| <= 0.05}}{n}$
+
 ```{r}
 # Table goes here
-lr_MSE = mean((exp(lr_model$finalModel$fitted.values) - 1 - test_solo$win_place_perc)^2)
+predictions_solo = predictions_solo %>%
+  mutate(lm_ae = abs(lm_pred - win_place_perc),
+         lasso_ae = abs(lasso_pred - win_place_perc),
+         rf_ae = abs(rf_pred - win_place_perc))
+
+predictions_solo %>%
+  mutate(lm_correct = lm_ae <= 0.05,
+         lasso_correct = lasso_ae <= 0.05,
+         rf_correct = rf_ae <= 0.05) %>%
+  summarize(lm_mae = mean(lm_ae),
+            lm_sdam = mean(lm_correct),
+            lasso_mae = mean(lasso_ae),
+            lasso_sdam = mean(lasso_correct),
+            rf_mae = mean(rf_ae),
+            rf_sdam = mean(rf_correct))
+
+# Boxplots of mean absolute error
+predictions_solo %>%
+  gather(lm_ae, lasso_ae, rf_ae) %>%
 ```
 
 
-Here we can provide a table (or plot) of MSE (or some metric representing accuracy, caret probably has a default) for each model. Then we say X model has the highest accuracy.
 
 ## Performance on Test Set
 
 As we have found that X model has the highest accuracy in the training set, we validate our results on an independent test set. 
 
-```{r lr_test}
+```{r lm_test}
 # Linear regression
-lr_pred = predict(lr_model, newdata = test_solo)
+pred_test = predict(lm_model, newdata = test_solo)
 
-# Get MSE
-lr_MSE = mean((exp(lr_pred) - 1 - test_solo$win_place_perc)^2)
 ```
 
 On the test set, the model performance is X.
 
 ## Summary
 
-To summarize, we use a couple of different models to predict the win place percentage. With X as our metric, we found that performed best using 5-fold cross validation on the training set. On an independent test set, the accuracy was X. 
+To summarize, we use a couple of different models to predict the win place percentage. With X as our metric, we found that X model performed best using 5-fold cross validation on the training set. On an independent test set, the accuracy of X model was X. 
 
 # Dimension reduction and clustering
 
@@ -406,6 +456,11 @@ Our outcome variable `win_place_perc` is pretty well explained by the first prin
 To-do: 
 1. Investigate why plotting PC3 and PC2 lead to clusters.
 2. Principal components regression (using 4-5 PCs). How does it compare to our earlier models?
+```{r}
+# method = "pcr"
+
+```
+
 
 ## K-means
 
