@@ -199,18 +199,16 @@ corr_matrix = train_solo %>%
 corrplot(corr_matrix, method = "color", type = "upper")
 ```
 
-# Data Analysis
-
-## Predictive Models
+# Prediction Models
 
 We will fit the following models:
 
-1. Linear regression
+1. Linear regression (to constrain outcome, need to use a GLM with beta or binomial distrib)
 2. Elastic net regression
 3. Random forest
 4. Any others in the caret package?
 
-### Linear Regression
+## Linear Regression
 
 First, we fit a linear regression model with 5-fold cross-validation. Since the final win percentage must be a value beteen 0 and 1, we log-transform `1 + win_place_perc` where the `1` is added to ensure all values are defined. The initial model will include all features except for the match ID and player ID, since neither feature is going to generalize for predicting new games, which is what we are interested in. 
 
@@ -239,7 +237,7 @@ train_solo %>%
   theme_bw()
 ```
 
-### Elastic net regression
+## Elastic net regression
 
 As we noted earlier in the data exploration, some of the features are highly correlated and/or seem to provide little signal (such as distance traveled). To solve these issues, we implement elastic net regression which uses a ridge-regression-like penalty to adjust for correlated features and lasso penalty to set the non-informative features to zero. 
 
@@ -268,7 +266,7 @@ train_solo %>%
   theme_bw()
 ```
 
-### Random Forest
+## Random Forest
 
 To account for correlation between features, another option is to use a random forest classifier. We train a random forest model below. 
 
@@ -278,11 +276,11 @@ rf_model = train(log(win_place_perc + 1) ~ . - match_id - id, data = train_solo,
 print(rf_model)
 ```
 
-### Comparison of Models with Cross-Validated MSE
+## Comparison of Models
 
-Here we can provide a table (or plot) of MSEs (or some metric representing accuracy, caret probably has a default) for each model. Then we say X model has the highest accuracy.
+Here we can provide a table (or plot) of MSE (or some metric representing accuracy, caret probably has a default) for each model. Then we say X model has the highest accuracy.
 
-### Evaluating Model Performance on the Test Set
+## Predictive Performance
 
 As we have found that X model has the highest accuracy in the training set, we validate our results on an independent test set. 
 
@@ -296,11 +294,11 @@ lr_MSE = mean((exp(lr_pred) - 1 - test_solo$win_place_perc)^2)
 
 On the test set, the model performance is X.
 
-### Summary of Models
+## Summary
 
 To summarize, we use a couple of different models to predict the win place percentage. With X as our metric, we found that performed best using 5-fold cross validation on the training set. On an independent test set, the accuracy was X. 
 
-## Clustering and Features
+# Dimension reduction and clustering
 
 We can try the following and see which one gives us a better story:
 
@@ -308,7 +306,7 @@ We can try the following and see which one gives us a better story:
 
 2. Manually summarize the features into something like the 3-4 categories described in the exploratory data analysis section, i.e. engineer a summary feature for "damage/kills", another summary feature for "distance travelled." Consult correlation plot and PCA plot to get good groupings as well. Then plot observations along these summary features and color points by outcome. This is basically the same idea as PCA except we already have a story in place for what the components mean.
 
-### Principal Components Analysis
+## Principal Components Analysis
 
 ```{r pca}
 # PCA
@@ -376,17 +374,22 @@ data.frame(PC2 = pc$x[,2], PC3 = pc$x[,3]) %>%
   theme_bw()
 ```
 
-Our outcome variable `win_place_perc` is pretty well explained by the first princiapl component. There are also interesting clusters formed when we plot principal components 2 and 3 that we should investigate.
+Our outcome variable `win_place_perc` is pretty well explained by the first princiapl component. 
 
-Principal components regression. How does it compare to our earlier models?
+To-do: 
+1. Investigate why plotting PC3 and PC2 lead to clusters.
+2. Principal components regression (using 4-5 PCs). How does it compare to our earlier models?
 
-## Questions:
-1. Do we want to engineer features and refit the data? Kill/damage, match characteristics, use of items, distance traveled?
-2. K-means clustering with k = 2? (One for 2 play styles: aggressive, hiding)
-3. What PC space do we want? looks like 4-5 captures a decent amount of variance?
+## K-means
 
-## Feature Ranking
+To-do:
+1. K-means clustering. It seems to me like aggressive playing styles are highly predictive for winning, but we can investigate whether there are other types of successful playing styles.
 
-Which features are most predictive? The features that contribute to PC1 are likely to be predictive. Plot variable importance from models as well. 
+## Summary
+
+
+# Feature Ranking
+
+Which features are most predictive? The features that contribute to PC1 are likely to be predictive. Use variable importance scores from models and PCA to discuss this.
 
 # Narrative and Summary
