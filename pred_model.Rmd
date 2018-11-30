@@ -93,19 +93,27 @@ solo_dat <- clean_dat %>%
 
 ## Training and Test Set 
 
-We are given a training set and a test set. The outcome variable for the test set will not be provided until the end of the Kaggle competition in Jan. 30th, 2019. Therefore, for the purposes of this project, we will only be using the provided training set. Due to computational costs, we will only use 100,000 observations (7% of the available data). Within this set, we will create our own "training" (80%) and "test" set (20%). For the rest of the document, the "training set" refers to the one we've created.
+We are given a training set and a test set. The outcome variable for the test set will not be provided until the end of the Kaggle competition in Jan. 30th, 2019. Therefore, for the purposes of this project, we will only be using the provided training set. Due to computational costs, we will only use 100,000 observations (7% of the available data). Within this set, we will create our own "training" (60%), "validation" (20%), and "test" set (20%). For the rest of the document, the "training set" refers to the one we've created.
 
 ```{r train_test_split}
-# Split into train and test set
+# Sample 100,000 observations
 set.seed(1)
 solo_dat = solo_dat %>%
   sample_n(100000)
 
-train_ind = createDataPartition(y = solo_dat$win_place_perc, p = 0.8, list = F)
+# Split into train and test
+train_ind = createDataPartition(y = solo_dat$win_place_perc, p = 0.6, list = F)
 train_solo = solo_dat %>%
   slice(train_ind)
-test_solo = solo_dat %>%
+temp_solo = solo_dat %>%
   slice(-train_ind)
+
+# Split into validation and test
+test_ind = createDataPartition(y = temp_solo$win_place_perc, p = 0.5, list = F)
+val_solo = temp_solo %>%
+  slice(-test_ind)
+test_solo = temp_solo %>%
+  slice(test_ind)
 ```
 
 ```{r}
@@ -227,11 +235,11 @@ tc = trainControl(method = "cv", number = 5)
 # Fit linear model using step-wise model selection using AIC
 lm_model = train(log(win_place_perc + 1) ~ . - match_id - id, data = train_solo, 
                  method = "lm", trControl = tc)
-summary(lm_model)
+#summary(lm_model)
 
 # Save predictions
-predictions_solo = data.frame(win_place_perc = train_solo$win_place_perc,
-                              lm_pred = exp(lm_model$finalModel$fitted.values) - 1) %>%
+predictions_solo = data.frame(win_place_perc = val_solo$win_place_perc,
+                              lm_pred = exp(predict(lm_model, val_solo)) - 1) %>%
   mutate(lm_pred = case_when(lm_pred < 0 ~ 0,
                              lm_pred > 1 ~ 1,
                              lm_pred >= 0 & lm_pred <= 1 ~ lm_pred)) # Constrain values to [0,1]
@@ -247,18 +255,19 @@ predictions_solo %>%
 
 ## Elastic net regression
 
-As we noted earlier in the data exploration, some of the features are highly correlated and/or seem to provide little signal (such as distance traveled). To solve these issues, we implement elastic net regression which uses a ridge-regression-like penalty to adjust for correlated features and lasso penalty to set the non-informative features to zero. 
+As we noted earlier in the data exploration, some of the features are highly correlated and/or seem to provide little signal (such as distance traveled). To solve these issues, we implement elastic net regression which uses a ridge-regression-like penalty to adjust for correlated features and lasso penalty to set the non-informative features to zero. Using cross-validation in the training set, we tune regularization hyperparameters. 
 
 ```{r lasso}
+set.seed(1)
 # Fit lasso_model using glmnet
 lasso_model = train(log(win_place_perc + 1) ~ . - match_id - id, data = train_solo, 
                     method = "glmnet", trControl = tc)
-print(lasso_model)
-coef(lasso_model$finalModel, lasso_model$bestTune$lambda)
+#print(lasso_model)
+#coef(lasso_model$finalModel, lasso_model$bestTune$lambda)
 
 # Add predictions to df
 predictions_solo = predictions_solo %>%
-  mutate(lasso_pred = exp(predict(lasso_model, train_solo)) - 1,
+  mutate(lasso_pred = exp(predict(lasso_model, val_solo)) - 1,
          lasso_pred = case_when(lasso_pred < 0 ~ 0,
                                 lasso_pred > 1 ~ 1,
                                 lasso_pred >=0 & lasso_pred <= 1 ~ lasso_pred)) # Constrain values to [0,1]
@@ -280,7 +289,11 @@ To account for correlation between features, another option is to use a random f
 2. Use only the top $10$ features determined by elastic net regression.
 3. Use 100 trees.
 
+Using cross-validation, we tune hyperparameters for random forest.
+
 ```{r rf}
+set.seed(1)
+# Warning: Takes a while to run (~3 minutes)
 imp_features = varImp(lasso_model$finalModel) %>%  
   mutate(variable = rownames(.)) %>%
   arrange(desc(Overall)) %>%
@@ -289,11 +302,11 @@ imp_features = varImp(lasso_model$finalModel) %>%
 
 rf_model = train(as.formula(paste("win_place_perc ~ ", paste(imp_features, collapse = "+"))), 
                  data = sample_n(train_solo, 10000), method = "rf", ntree = 100, importance = T, trControl = tc)
-print(rf_model)
+# print(rf_model)
 
 # Add predictions to df
 predictions_solo = predictions_solo %>%
-  mutate(rf_pred = predict(rf_model, train_solo),
+  mutate(rf_pred = predict(rf_model, val_solo),
          rf_pred = case_when(rf_pred < 0 ~ 0,
                              rf_pred > 1 ~ 1,
                              rf_pred >=0 & rf_pred <= 1 ~ rf_pred)) # Constrain values to [0,1]
@@ -356,23 +369,26 @@ imp %>%
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-There is not much agreement in the features that each model regards to be important. This may be due to highly correlated features; for example, `kill_place` and `kill_streaks` are highly correlated and while the former is rated as highly important by the linear regression and random forest, the latter is rated as highly important by elastic net regression. We will continue investigate features in the dimension reduction and clustering section.
+There is not much agreement in the features that each model regards to be important. This may be due to highly correlated features; for example, `kill_place` and `kill_streaks` are highly correlated and while the former is rated as highly important by the linear regression and random forest, the latter is rated as highly important by elastic net regression. We will continue investigating features and features importance in the dimension reduction and clustering section.
 
 ## Comparison of Models
 
 We will compare models with the following metrics:
 
 1. Mean absolute error (MAE): Represents the average absolute deviation. $\frac{\sum_{i=1}^n |\hat{y}_i - y_i|}{n}$
+
 2. Self-defined accuracy metric (SDAM): If the predicted outcome is within 5% of the actual win place percentage, we classify it as a "correct" prediction. Otherwise, it is an incorrect prediction. $\frac{\sum_{i=1}^n \mathbb{1}_{|hat{y}_i - y_i| <= 0.05}}{n}$
 
+We will compare the models using these metrics on the validation set.
+
 ```{r}
-# Table goes here
 predictions_solo = predictions_solo %>%
   mutate(lm_ae = abs(lm_pred - win_place_perc),
          lasso_ae = abs(lasso_pred - win_place_perc),
          rf_ae = abs(rf_pred - win_place_perc))
 
-predictions_solo %>%
+# Summarize metrics
+metrics_solo = predictions_solo %>%
   mutate(lm_correct = lm_ae <= 0.05,
          lasso_correct = lasso_ae <= 0.05,
          rf_correct = rf_ae <= 0.05) %>%
@@ -381,30 +397,57 @@ predictions_solo %>%
             lasso_mae = mean(lasso_ae),
             lasso_sdam = mean(lasso_correct),
             rf_mae = mean(rf_ae),
-            rf_sdam = mean(rf_correct))
+            rf_sdam = mean(rf_correct)) %>%
+  gather() %>%
+  separate(key, c("model", "metric"))
 
-# Boxplots of mean absolute error
-predictions_solo %>%
-  gather(
+# Plot metrics
+metrics_solo %>%
+  filter(metric == "mae") %>%
+  ggplot(aes(x = model, y = value, label = round(value, 3))) +
+  geom_col() +
+  geom_label() +
+  labs(title = "Comparison of MAE",
+       x = "Model",
+       y = "MAE") +
+  theme_bw()
+
+metrics_solo %>%
+  filter(metric == "sdam") %>%
+  ggplot(aes(x = model, y = value, label = round(value, 3))) + 
+  geom_col() + 
+  geom_label() + 
+  labs(title = "Comparison of SDAM",
+       x = "Model",
+       y = "SDAM") +
+  theme_bw()
 ```
 
-
+From the above plots, we can see that random forest performs best on both metrics. This is despite the fact that random forest was trained on only 10,000 observations as opposed to 60,000 observations. Its MAE is 0.054, which means that on average, the predicted win place percentage is 0.057 off from the true win place percentage. Its SDAM is 0.604, which means that for 60.4% of observations in our validation set, the predicted value is within 5% of the true win place percentage.
 
 ## Performance on Test Set
 
-As we have found that X model has the highest accuracy in the training set, we validate our results on an independent test set. 
+As we have found that the random forest model has the highest accuracy in the training set, we validate our results on an independent test set. 
 
 ```{r lm_test}
-# Linear regression
-pred_test = predict(lm_model, newdata = test_solo)
+predictions_solo = predictions_solo %>%
+  mutate(lm_ae = abs(lm_pred - win_place_perc),
+         lasso_ae = abs(lasso_pred - win_place_perc),
+         rf_ae = abs(rf_pred - win_place_perc))
 
+# Linear regression
+pred_val_test = data.frame(rf_test_pred = predict(rf_model, test_solo)) %>%
+  mutate(rf_test_ae = abs(rf_test_pred - test_solo$win_place_perc),
+         rf_test_correct = rf_test_ae <= 0.05) %>%
+  summarize(rf_test_mae = mean(rf_test_ae),
+            rf_test_sdam = mean(rf_test_correct))
 ```
 
-On the test set, the model performance is X.
+On the test set, random forest has a MAE of `r round(pred_val_test$rf_test_mae, 3)` and a SDAM of `r round(pred_val_test$rf_test_sdam, 3)`, which is similar to what we saw in the validation set.
 
 ## Summary
 
-To summarize, we use a couple of different models to predict the win place percentage. With X as our metric, we found that X model performed best using 5-fold cross validation on the training set. On an independent test set, the accuracy of X model was X. 
+We use three different models to predict the win place percentage: linear regression, elastic net regression, and random forest. Using mean absolute error (MAE) and a similar, self-defined accuracy metric (SDAM) quantifying the proportion of predictions that fall within 5% of the true win place percentage, we found that the random forest model performed best using 5-fold cross validation on the training set. On an independent test set, we achieved a MAE of `r round(pred_val_test$rf_test_mae, 3)` and a SDAM of `r round(pred_val_test$rf_test_sdam, 3)`.
 
 # Dimension reduction and clustering
 
