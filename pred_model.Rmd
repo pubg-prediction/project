@@ -321,6 +321,7 @@ predictions_solo %>%
   theme_bw()
 ```
 
+Note that the spread of points narrows for players that place higher (actual win place percentage approaches 0). This indicates that we are able to predict more accurately for players that place higher. 
 
 ## Feature Ranking
 
@@ -525,7 +526,7 @@ On the test set, random forest has a MAE of `r round(pred_test_metrics$rf_test_m
 
 **Best-performing model: Random forest**
 
-We use three different models to predict the win place percentage: linear regression, elastic net regression, and random forest. Using mean absolute error (MAE) and a similar, self-defined accuracy metric (SDAM) quantifying the proportion of predictions that fall within 5% of the true win place percentage, we found that the random forest model performed best using 5-fold cross validation on the training set. On an independent test set, we achieved a MAE of `r round(pred_test_metrics$rf_test_mae, 3)` and a SDAM of `r round(pred_test_metrics$rf_test_sdam, 3)`.
+We use three different models to predict the win place percentage: linear regression, elastic net regression, and random forest. Using mean absolute error (MAE), our self-defined accuracy metric (SDAM) quantifying the proportion of predictions that fall within x% of the true win place percentage, and the ROC curve, we found that the random forest model performed best on the validation set. On an independent test set, we achieved a MAE of `r round(pred_test_metrics$rf_test_mae, 3)` and an SDAM of `r round(pred_test_metrics$rf_test_sdam, 3)`. We also achieved a sensitivity of 0.91 and specificity 0.97, meaning that we are able to correctly classify 91% of winners correctly while misclassifying only 3% of losers.
 
 **Higher predictive accuracy for top players**
 
