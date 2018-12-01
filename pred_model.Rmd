@@ -290,7 +290,9 @@ data.frame(PC2 = pc$x[,2], PC3 = pc$x[,3]) %>%
   theme_bw()
 ```
 
-Our outcome feature `win_place_perc` is pretty well explained by the first principal component, as lower values correspond to a lower win place percent. Similarly, we also see correlation between win place percentage and the second and third principal components. This suggests that with principal components regression, we can achieve decent levels of accuracy with only a few variables (principal components), since the differences in win place percentage can likely be explained by the largest variations in the data.
+Our outcome feature `win_place_perc` is pretty well explained by the first principal component, as lower values correspond to a higher win place percent. Similarly, we also see correlation between win place percentage and the second and third principal components. This suggests that the largest variations in the features can explain the variation in the outcome as well. We will explore this further in the feature ranking section.
+
+It's worth noting that there appears to be higher proportions of a high win place percent for higher values of the second principal component (more players in a game). This suggests that the sampling distribution across win place percent is not the same for games with higher or lower numbers of players.
 
 ## K-means
 
@@ -461,7 +463,15 @@ imp %>%
 
 While there is not much agreement in the features that each model regards to be important, this is likely due to highly correlated features; for example, if we look at the features `kill_place` and `kill_streaks`, the former is rated as highly important by the linear regression and random forest, while the latter is rated as highly important by elastic net regression. However, the two features are known to be highly correlated with each other.
 
-From our earlier analysis with principal components analysis, we know that `kill_place` primarily explains the first principal component and `num_groups` primarily explains the second principal component. Incidentally, these are the top 2 features identified to be important by random forest's importance scores. This suggests that 
+Let's take a look at the importance score for random forest. The top two features are `kill_place` and `num_group`. From our earlier analysis with principal components analysis, we know that incidentally, `kill_place` is a primary factor in the first principal component and `num_groups` is a primary factor in the second principal component. Taking these results into account, it suggests that the largest variation we see in the features are also the most important signals for predicting the outcome. 
+
+# Summary
+
+1. The most important predictor is the number of kills a player makes. The strongest signal lies in the relative number of kills, as indicated by `kill_place`, rather than the absolute number of `kills` or other aggressivenss indicators like `weapons_acquired`, `kill_streaks`, and `headshot_kills`. What this suggests is that while a few players may succeed with less confrontational playing strategies, the vast majority of top players pursue highly aggressive tactics. In the context of battle royale games, this means that you need to kill other players or you will be eliminated.
+
+2. Among items used, `boosts` and `weapons_acquired` are the strongest predictors of outcome. This is interesting because one would expect that among items, weapons would be the dominant predictor. However, while the acquisition of weapons may plateau over time once you have strong weapons. On the other hand, `boosts`, which allow you to gain health above 75% and have a small movement speed bonus, are more likely to be something you have to consistently use throughout the game, since in the latter stages of the game, even the strongest players are likely to take some damage. Moreover, `boosts` provide a stronger signal than `heals`, since the strongest players are less likely to take severe damage and require `heals`.
+
+3. Another important element in prediction is the number of players in a game, as indicated by `num_group` and `max_place`. This is likely due to an artifact in sampling in the data. That is, for matches with a lower number of players, it is easier to sample players that place lower, in comparison to matches with a higher number of players. In fact, we can see this phenomenon in the princiapl components plot. As it doesn't have any correspondence to actual playing style, it is of less interest to us. 
 
 ## Comparison of Models
 
@@ -528,20 +538,20 @@ data.frame(cutoff = rep(cutoff, 3),
 
 # Plot ROC
 predictions_solo = predictions_solo %>%
-  mutate(winner = ifelse(win_place_perc == 0, 1, 0))
+  mutate(winner = ifelse(win_place_perc == 1, 1, 0))
 
 cutoff = seq(0, 1, by = 0.01)
-sens_lm = sapply(cutoff, function(x) sum(predictions_solo$lm_pred < x & predictions_solo$winner)/sum(predictions_solo$winner))
-spec_lm = sapply(cutoff, function(x) sum(predictions_solo$lm_pred >= x & !predictions_solo$winner)/sum(!predictions_solo$winner))
-sens_lasso = sapply(cutoff, function(x) sum(predictions_solo$lasso_pred < x & predictions_solo$winner)/sum(predictions_solo$winner))
-spec_lasso = sapply(cutoff, function(x) sum(predictions_solo$lasso_pred >= x & !predictions_solo$winner)/sum(!predictions_solo$winner))
-sens_rf = sapply(cutoff, function(x) sum(predictions_solo$rf_pred < x & predictions_solo$winner)/sum(predictions_solo$winner))
-spec_rf = sapply(cutoff, function(x) sum(predictions_solo$rf_pred >= x & !predictions_solo$winner)/sum(!predictions_solo$winner))
+sens_lm = sapply(cutoff, function(x) sum(predictions_solo$lm_pred > x & predictions_solo$winner)/sum(predictions_solo$winner))
+spec_lm = sapply(cutoff, function(x) sum(predictions_solo$lm_pred <= x & !predictions_solo$winner)/sum(!predictions_solo$winner))
+sens_lasso = sapply(cutoff, function(x) sum(predictions_solo$lasso_pred > x & predictions_solo$winner)/sum(predictions_solo$winner))
+spec_lasso = sapply(cutoff, function(x) sum(predictions_solo$lasso_pred <= x & !predictions_solo$winner)/sum(!predictions_solo$winner))
+sens_rf = sapply(cutoff, function(x) sum(predictions_solo$rf_pred > x & predictions_solo$winner)/sum(predictions_solo$winner))
+spec_rf = sapply(cutoff, function(x) sum(predictions_solo$rf_pred <= x & !predictions_solo$winner)/sum(!predictions_solo$winner))
 
 data.frame(cutoff = rep(cutoff, 3),
-           sens = c(sens_lm, sens_lasso, sens_rf),
-           spec = c(spec_lm, spec_lasso, spec_rf),
-           model = rep(c("Linear", "Elastic Net", "Random Forest"), each = length(cutoff))) %>%
+               sens = c(sens_lm, sens_lasso, sens_rf),
+               spec = c(spec_lm, spec_lasso, spec_rf),
+               model = rep(c("Linear", "Elastic Net", "Random Forest"), each = length(cutoff))) %>%
   ggplot(aes(x = 1-spec, y = sens, color = model)) + 
   geom_point() + 
   geom_line() + 
@@ -550,9 +560,10 @@ data.frame(cutoff = rep(cutoff, 3),
        x = "False Positive Rate (1 - Specificity)",
        y = "Sensitivity",
        color = "Model")
+
 ```
 
-From the above plots, we can see that random forest performs best on all three metrics. This is despite the restrictions we had to place in order to run the random forest model in a reasonable amount of time. Its MAE is 0.054, which means that on average, the predicted win place percentage is 0.054 off from the true win place percentage. Its SDAM is consistently higher than the SDAM for linear regression or elastic net regression. For example, its SDAM(5) is 0.604, which means that for 60.4% of observations in our validation set, the predicted value is within 5% of the true win place percentage. Lastly, the area under its ROC curve is the largest, which indicates that it performs best at classifying who the winners are (sensitivity = 0.91, specificity = 0.96). 
+From the above plots, we can see that random forest performs best on all three metrics. This is despite the restrictions we had to place in order to run the random forest model in a reasonable amount of time. Its MAE is 0.054, which means that on average, the predicted win place percentage is 0.054 off from the true win place percentage. Its SDAM is consistently higher than the SDAM for linear regression or elastic net regression. For example, its SDAM(5) is 0.604, which means that for 60.4% of observations in our validation set, the predicted value is within 5% of the true win place percentage. Lastly, the area under its ROC curve is the largest, which indicates that it performs best at classifying who the winners are (sensitivity = 0.91, specificity = 0.81). 
 
 ## Performance on Test Set
 
@@ -563,7 +574,7 @@ pred_test = data.frame(rf_test_pred = predict(rf_model, test_solo)) %>%
   mutate(win_place_perc = test_solo$win_place_perc,
          rf_test_ae = abs(rf_test_pred - win_place_perc),
          rf_test_correct = rf_test_ae <= 0.05,
-         winner = ifelse(win_place_perc == 0, 1, 0))
+         winner = ifelse(win_place_perc == 1, 1, 0))
 
 # Plot SDAM
 cutoff = seq(0, 0.5, by = 0.01)
@@ -586,10 +597,10 @@ data.frame(cutoff = rep(cutoff, 2),
 
 # Plot ROC
 cutoff = seq(0, 1, by = 0.01)
-sens_test_rf = sapply(cutoff, function(x) sum(pred_test$rf_test_pred < x & pred_test$winner)/sum(pred_test$winner))
-spec_test_rf = sapply(cutoff, function(x) sum(pred_test$rf_test_pred >= x & !pred_test$winner)/sum(!pred_test$winner))
+sens_test_rf = sapply(cutoff, function(x) sum(pred_test$rf_test_pred > x & pred_test$winner)/sum(pred_test$winner))
+spec_test_rf = sapply(cutoff, function(x) sum(pred_test$rf_test_pred <= x & !pred_test$winner)/sum(!pred_test$winner))
 
-data.frame(cutoff = rep(cutoff, 2),
+p = data.frame(cutoff = rep(cutoff, 2),
            sens = c(sens_rf, sens_test_rf),
            spec = c(spec_rf, spec_test_rf),
            set = rep(c("Validation", "Test"), each = length(cutoff))) %>%
@@ -602,6 +613,8 @@ data.frame(cutoff = rep(cutoff, 2),
        y = "Sensitivity",
        color = "Dataset")
 
+ggplotly(p)
+
 pred_test_metrics = pred_test %>%
   summarize(rf_test_mae = mean(rf_test_ae),
             rf_test_sdam = mean(rf_test_correct))
@@ -613,14 +626,16 @@ On the test set, random forest has a MAE of `r round(pred_test_metrics$rf_test_m
 
 **Best-performing model: Random forest**
 
-We use three different models to predict the win place percentage: linear regression, elastic net regression, and random forest. Using mean absolute error (MAE), our self-defined accuracy metric (SDAM) quantifying the proportion of predictions that fall within x% of the true win place percentage, and the ROC curve, we found that the random forest model performed best on the validation set. On an independent test set, we achieved a MAE of `r round(pred_test_metrics$rf_test_mae, 3)` and an SDAM of `r round(pred_test_metrics$rf_test_sdam, 3)`. We also achieved a sensitivity of 0.91 and specificity 0.97, meaning that we are able to correctly classify 91% of winners correctly while misclassifying only 3% of losers.
+We use three different models to predict the win place percentage: linear regression, elastic net regression, and random forest. Using mean absolute error (MAE), our self-defined accuracy metric (SDAM) quantifying the proportion of predictions that fall within x% of the true win place percentage, and the ROC curve, we found that the random forest model performed best on the validation set. On an independent test set, we achieved a MAE of `r round(pred_test_metrics$rf_test_mae, 3)` and an SDAM of `r round(pred_test_metrics$rf_test_sdam, 3)`. We also achieved a sensitivity of 0.91 and specificity 0.81, meaning that we are able to correctly classify 91% of winners correctly while correctly classifying 81% of losers.
 
 **Higher predictive accuracy for top players**
 
 With the random forest model in particular, we can see from its figure of predicted vs actual values that our predictions are more accurate for players with higher placements. This makes sense since there should be increasingly higher demands on skill the higher you place and therefore more signal in the data. In other words, the difference in skill between a player who places 60 vs a player who places 90 out of 100 is likely much smaller than the difference between a player who places 1 vs a player who places 30 out of 100. As a result, we can more accurately distinguish between places the higher you place. 
 
-
-## Summary
-
-
 # Narrative and Summary
+
+1. Features can be categorize into groups using PCA: The most important group is kills, followed by number of players. In terms of items, boosts are equally important as weapons. 
+
+2. With our random forest model, we can achieve an accuracy of X.
+
+3. 
