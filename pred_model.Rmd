@@ -239,7 +239,7 @@ tc = trainControl(method = "cv", number = 5)
 # Fit linear model using step-wise model selection using AIC
 lm_model = train(log(win_place_perc + 1) ~ . - match_id - id, data = train_solo, 
                  method = "lm", trControl = tc)
-#summary(lm_model)
+print(lm_model)
 
 # Save predictions
 predictions_solo = data.frame(win_place_perc = val_solo$win_place_perc,
@@ -266,7 +266,7 @@ set.seed(1)
 # Fit lasso_model using glmnet
 lasso_model = train(log(win_place_perc + 1) ~ . - match_id - id, data = train_solo, 
                     method = "glmnet", trControl = tc)
-#print(lasso_model)
+print(lasso_model)
 #coef(lasso_model$finalModel, lasso_model$bestTune$lambda)
 
 # Add predictions to df
@@ -306,14 +306,11 @@ imp_features = varImp(lasso_model$finalModel) %>%
 
 rf_model = train(as.formula(paste("win_place_perc ~ ", paste(imp_features, collapse = "+"))), 
                  data = sample_n(train_solo, 10000), method = "rf", ntree = 100, importance = T, trControl = tc)
-# print(rf_model)
+print(rf_model)
 
 # Add predictions to df
 predictions_solo = predictions_solo %>%
-  mutate(rf_pred = predict(rf_model, val_solo),
-         rf_pred = case_when(rf_pred < 0 ~ 0,
-                             rf_pred > 1 ~ 1,
-                             rf_pred >=0 & rf_pred <= 1 ~ rf_pred)) # Constrain values to [0,1]
+  mutate(rf_pred = predict(rf_model, val_solo))
 
 # Plot predicted vs true values
 predictions_solo %>%
@@ -385,8 +382,10 @@ We will compare our models with the following metrics on the validation set:
 1. **Mean absolute error (MAE)**: Represents the average absolute deviation. 
 $$MAE = \frac{\sum_{i=1}^n |\hat{y}_i - y_i|}{n}$$
 
-2. **Self-defined accuracy metric (SDAM)**: If the predicted outcome is within 5% of the actual win place percentage, we classify it as a "correct" prediction. Otherwise, it is an incorrect prediction. 
-$$SDAM = \frac{\sum_{i=1}^n \mathbb{1}_{|\hat{y}_i - y_i| <= 0.05}}{n}$$
+2. **Self-defined accuracy metric (SDAM(x))**: This metric is a function of a cutoff value $x$. If the predicted outcome is within $x\%$ of the actual win place percentage, we classify it as a "correct" prediction. Otherwise, it is an incorrect prediction.  
+$$SDAM(x) = \frac{\sum_{i=1}^n \mathbb{1}_{|\hat{y}_i - y_i| <= x}}{n}$$
+
+3. **Classification of Winners**: We can compute the ROC curve by turning our predictions into a classification problem. Given a predicted win place percentage, we classify the player as a winner if its predicted value is less than a cutoff value $x\%$. For different cutoff values, we can then compute the sensitivity (true positive rate, or the proportion of actual winners we classify as such) and specificity (true negative rate, or the proportion of actual losers we classify as such).
 
 ```{r}
 predictions_solo = predictions_solo %>%
@@ -408,7 +407,7 @@ metrics_solo = predictions_solo %>%
   gather() %>%
   separate(key, c("model", "metric"))
 
-# Plot metrics
+# Plot MAE
 metrics_solo %>%
   filter(metric == "mae") %>%
   ggplot(aes(x = model, y = value, label = round(value, 3))) +
@@ -418,34 +417,31 @@ metrics_solo %>%
   scale_x_discrete(labels = c("Elastic Net", "Linear", "Random Forest")) +
   theme_bw()
 
-metrics_solo %>%
-  filter(metric == "sdam") %>%
-  ggplot(aes(x = model, y = value, label = round(value, 3))) + 
-  geom_col() + 
-  geom_label() + 
-  labs(title = "Comparison of SDAM", x = "Model", y = "SDAM") +
-  scale_x_discrete(labels = c("Elastic Net", "Linear", "Random Forest")) +
-  theme_bw()
-
-# Plot percent of observations with predictions falling within x% of true outcome
+# Plot SDAM
 cutoff = seq(0, 0.5, by = 0.01)
 prop_lm = sapply(cutoff, function(x) mean(predictions_solo$lm_ae < x))
 prop_lasso = sapply(cutoff, function(x) mean(predictions_solo$lasso_ae < x))
 prop_rf = sapply(cutoff, function(x) mean(predictions_solo$rf_ae < x))
+
 data.frame(cutoff = rep(cutoff, 3), 
            prop = c(prop_lm, prop_lasso, prop_rf),
            model = rep(c("Linear", "Elastic Net", "Random Forest"), each = length(cutoff))) %>%
   ggplot(aes(x = cutoff, y = prop, color = model)) + 
   geom_point() +
   geom_line() +
-  labs(title = "Proportion of Predictions within X% of Actual Win Place Percentage",
-       x = "Predicted - Actual Win Place Percentage",
-       y = "Proportion",
+  geom_vline(xintercept = 0.05, linetype = "longdash", color = "slategray") +
+  annotate(geom = "text", x = 0.05, label="SDAM(0.05)", y = 0.8, colour = "slategray", angle = 90, vjust = -1.1) +
+  labs(title = "Comparison of SDAM",
+       subtitle = "Proportion of Predictions Within x% of Actual Win Place Percentage",
+       x = "|Predicted - Actual Win Place Percentage|",
+       y = "SDAM",
        color = "Model") +
   theme_bw()
+
+# Plot ROC
 ```
 
-From the above plots, we can see that random forest performs best on both metrics. This is despite the restrictions we had to place in order to run the random forest model in a reasonable amount of time. Its MAE is 0.054, which means that on average, the predicted win place percentage is 0.057 off from the true win place percentage. Its SDAM is 0.604, which means that for 60.4% of observations in our validation set, the predicted value is within 5% of the true win place percentage.
+From the above plots, we can see that random forest performs best on both metrics. This is despite the restrictions we had to place in order to run the random forest model in a reasonable amount of time. Its MAE is 0.054, which means that on average, the predicted win place percentage is 0.057 off from the true win place percentage. Its SDAM is consistently higher than the SDAM for linear regression or elastic net regression. For example, its SDAM(5) is 0.604, which means that for 60.4% of observations in our validation set, the predicted value is within 5% of the true win place percentage.
 
 ## Performance on Test Set
 
@@ -465,11 +461,14 @@ data.frame(cutoff = rep(cutoff, 2),
   ggplot(aes(x = cutoff, y = prop, color = set)) + 
   geom_point() +
   geom_line() +
+  geom_vline(xintercept = 0.05, linetype = "longdash", color = "slategray") +
+  annotate(geom = "text", x = 0.05, label="SDAM(0.05)", y = 0.8, colour = "slategray", angle = 90, vjust = -1.1) +
   theme_bw() +
-  labs(title = "Proportion of Predictions within X% of Actual Win Place Percentage",
-       x = "Predicted - Actual Win Place Percentage",
-       y = "Proportion",
-       color = "Dataset") +
+  labs(title = "Comparison of SDAM",
+       subtitle = "Proportion of Predictions Within x% of Actual Win Place Percentage",
+       x = "|Predicted - Actual Win Place Percentage|",
+       y = "SDAM",
+       color = "Model") +
   theme_bw()
 
 pred_test_metrics = pred_test %>%
@@ -477,7 +476,7 @@ pred_test_metrics = pred_test %>%
             rf_test_sdam = mean(rf_test_correct))
 ```
 
-On the test set, random forest has a MAE of `r round(pred_test_metrics$rf_test_mae, 3)` and a SDAM of `r round(pred_test_metrics$rf_test_sdam, 3)`, which is similar to what we saw in the validation set. We can also see in the above plot that the random forest model performs equally well in the test set as in the validation set.
+On the test set, random forest has a MAE of `r round(pred_test_metrics$rf_test_mae, 3)` and a SDAM(5) of `r round(pred_test_metrics$rf_test_sdam, 3)`, which is similar to what we saw in the validation set. We can also see in the above plot that the random forest model performs equally well in the test set as in the validation set.
 
 ## Summary
 
@@ -485,9 +484,9 @@ On the test set, random forest has a MAE of `r round(pred_test_metrics$rf_test_m
 
 We use three different models to predict the win place percentage: linear regression, elastic net regression, and random forest. Using mean absolute error (MAE) and a similar, self-defined accuracy metric (SDAM) quantifying the proportion of predictions that fall within 5% of the true win place percentage, we found that the random forest model performed best using 5-fold cross validation on the training set. On an independent test set, we achieved a MAE of `r round(pred_test_metrics$rf_test_mae, 3)` and a SDAM of `r round(pred_test_metrics$rf_test_sdam, 3)`.
 
-**High predictive accuracy for top players**
+**Higher predictive accuracy for top players**
 
-With the random forest model in particular, we can also see from its figure of predicted vs actual values that our predictions are more accurate for players with higher placements. This makes sense since there should be increasingly higher demands on skill the higher you place and therefore more signal in the data. In other words, the difference in skill between a player who places 60 vs a player who places 90 out of 100 is likely much smaller than the difference between a player who places 1 vs a player who places 30 out of 100. As a result, we can more accurately distinguish between places the higher you place. 
+With the random forest model in particular, we can see from its figure of predicted vs actual values that our predictions are more accurate for players with higher placements. This makes sense since there should be increasingly higher demands on skill the higher you place and therefore more signal in the data. In other words, the difference in skill between a player who places 60 vs a player who places 90 out of 100 is likely much smaller than the difference between a player who places 1 vs a player who places 30 out of 100. As a result, we can more accurately distinguish between places the higher you place. 
 
 # Dimension reduction and clustering
 
