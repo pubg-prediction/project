@@ -91,6 +91,45 @@ solo_dat <- clean_dat %>%
   select(-kill_points, -win_points, -rank_points)    # Variables being deprecated
 ```
 
+## Remove matches 
+
+**Need to edit this section**
+
+```{r prop_data}
+# Compute proportions
+prop_data = solo_dat %>% 
+  group_by(match_id, max_place, match_duration) %>% 
+  count() %>%
+  ungroup() %>%
+  mutate(prop = n/max_place,
+         remove_game = prop > 1)
+
+# Games with proportion greater than 100%
+prop_over_100 = prop_data %>%
+  summarize(prop_n = sum(prop > 1),
+            prop_games = prop_n/n())
+
+# Histogram
+prop_data %>%
+  ggplot(aes(x = prop)) + 
+  geom_histogram(bins = 30, color = 'white') +
+  labs(title = "Proportion of players we have data for in a game",
+       x = "Proportion",
+       y = "Count") +
+  theme_minimal()
+
+# Remove games with proportion greater than 100%
+remove_match_ids = prop_data %>%
+  filter(remove_game) %>%
+  pull(match_id)
+
+solo_dat = solo_dat %>%
+  filter(!(match_id %in% remove_match_ids))
+```
+
+For most games, we have between 70% to 90% of the players' data, using `max_place` (the worst placement for which we have data) as a proxy for total number of players. For `r prop_over_100$prop_n` games (`r round(prop_over_100$prop_games*100, 2)`% of all games), we have more observations than `max_place`, which is not possible. Thus, we excluded these games from our analysis.
+
+
 ## Training and Test Set 
 
 We are given a training set and a test set. The outcome variable for the test set will not be provided until the end of the Kaggle competition in Jan. 30th, 2019. Therefore, for the purposes of this project, we will only be using the provided training set. Due to computational costs, we will only use 100,000 observations (7% of the available data). Within this set, we will create our own "training" (60%), "validation" (20%), and "test" set (20%). For the rest of the document, the "training set" refers to the one we've created.
@@ -120,43 +159,9 @@ test_solo = temp_solo %>%
 glimpse(train_solo)
 ```
 
-# Exploratory Data Analysis
-
 In the training set, we have `r n_distinct(train_solo$id)` players and `r n_distinct(train_solo$match_id)` matches. 
 
-```{r prop_data}
-# Compute proportions
-prop_data = train_solo %>% 
-  group_by(match_id, max_place, match_duration) %>% 
-  count() %>%
-  ungroup() %>%
-  mutate(prop = n/max_place,
-         remove_game = prop > 1)
-
-# Games with proportion greater than 100%
-prop_over_100 = prop_data %>%
-  summarize(prop_n = sum(prop > 1),
-            prop_games = prop_n/n())
-
-# Histogram
-prop_data %>%
-  ggplot(aes(x = prop)) + 
-  geom_histogram(bins = 30, color = 'white') +
-  labs(title = "Proportion of players we have data for in a game",
-       x = "Proportion",
-       y = "Count") +
-  theme_minimal()
-
-# Remove games with proportion greater than 100%
-remove_match_ids = prop_data %>%
-  filter(remove_game) %>%
-  pull(match_id)
-
-train_solo = train_solo %>%
-  filter(!(match_id %in% remove_match_ids))
-```
-
-For most games, we have between 70% to 90% of the players' data, using `max_place` (the worst placement for which we have data) as a proxy for total number of players. For `r prop_over_100$prop_n` games (`r round(prop_over_100$prop_games*100, 2)`% of all games), we have more observations than `max_place`, which is not possible. Thus, we excluded these games from our analysis.
+# Exploratory Data Analysis
 
 ## Distribution of Features by Finish Percentile
 
@@ -601,7 +606,7 @@ cutoff = seq(0, 1, by = 0.01)
 sens_test_rf = sapply(cutoff, function(x) sum(pred_test$rf_test_pred > x & pred_test$winner)/sum(pred_test$winner))
 spec_test_rf = sapply(cutoff, function(x) sum(pred_test$rf_test_pred <= x & !pred_test$winner)/sum(!pred_test$winner))
 
-p = data.frame(cutoff = rep(cutoff, 2),
+data.frame(cutoff = rep(cutoff, 2),
            sens = c(sens_rf, sens_test_rf),
            spec = c(spec_rf, spec_test_rf),
            set = rep(c("Validation", "Test"), each = length(cutoff))) %>%
@@ -613,8 +618,6 @@ p = data.frame(cutoff = rep(cutoff, 2),
        x = "False Positive Rate (1 - Specificity)",
        y = "Sensitivity",
        color = "Dataset")
-
-ggplotly(p)
 
 pred_test_metrics = pred_test %>%
   summarize(rf_test_mae = mean(rf_test_ae),
