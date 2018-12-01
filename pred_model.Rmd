@@ -14,7 +14,7 @@ knitr::opts_chunk$set(include = TRUE, comment = NA, warning = FALSE,
 
 ```{r packages, include = F, cache = F}
 library(pacman) # for loading packages
-p_load(tidyverse, janitor, caret, lubridate, RColorBrewer, corrplot, factoextra)
+p_load(tidyverse, janitor, caret, lubridate, RColorBrewer, corrplot, factoextra, knitr)
 ```
 
 # Overview
@@ -550,6 +550,7 @@ X = train_solo %>%
   as.matrix()
 
 pc = prcomp(X, center = T, scale = T)
+pc[[2]][,1:3] %>% kable()
 
 # Plot eigenvalues (percentage of variances explained by each principal component)
 fviz_eig(pc)
@@ -561,6 +562,7 @@ data.frame(cumvar = cumsum(pc$sdev^2/sum(pc$sdev^2))) %>%
   geom_line() + 
   labs(title = "Cumulative Variance Explained by the First K PCs", 
        x = "K", y = "Percent of Variance Explained") +
+  scale_y_continuous(limits = c(0, 100)) +
   theme_bw()
 
 # Plot features in terms of the first two principal components
@@ -568,17 +570,18 @@ data.frame(cumvar = cumsum(pc$sdev^2/sum(pc$sdev^2))) %>%
 fviz_pca_var(pc,
              col.var = "contrib", # Color by contributions to the PC
              gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
-             repel = TRUE     # Avoid text overlapping
+             repel = TRUE         # Avoid text overlapping
              )
 ```
 
-The first principal component explains much of the variance we see in our features (29.6%), while the second to sixth principal component all explain between 5 to 10%. In the second plot, we can observe each feature's contribution to the first two principal components and their correlations.
+The first principal component explains much of the variance we see in our features (29.6%), while the second to sixth principal component all explain between 5 to 10%. The first three components cover over 50% of the variation we see in our data, as seen in the second plot. In the third plot, we visualize each feature's contribution to the first two principal components and their correlations.
 
 1. **PC 1**: The first principal component comprises of features related to damage and kills, primarily the features `kills`, `kill_place`, `damage_dealt`. To a lesser extent, features like `damage_dealt`, `longest_kill`, `headshot_kills`, `boosts`, and `heals` also exhibit contribution primarily to the first principal component. 
 
 2. **PC 2**: The second principal component is characterized by details related to the match setting, i.e. `num_groups` and `max_place`.
 
-Remaining features like `road_kills`, `vehicle_destroys`, `ride_distance` do not contribute much to either of the first two principal components. We should investigate if they do to the third principal component.
+3. **PC 3**: We can examine the table of contributions to each principal component to deduce which features contribute the most to the third principal component. The third principal component explains variation in features not well-represented in the first two components, such as `match_duration` and `ride_distance`.
+
 
 ```{r pca_points}
 # Plot points on principal components 1 and 2 
