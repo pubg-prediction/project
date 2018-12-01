@@ -439,9 +439,32 @@ data.frame(cutoff = rep(cutoff, 3),
   theme_bw()
 
 # Plot ROC
+predictions_solo = predictions_solo %>%
+  mutate(winner = ifelse(win_place_perc == 0, 1, 0))
+
+cutoff = seq(0, 1, by = 0.01)
+sens_lm = sapply(cutoff, function(x) sum(predictions_solo$lm_pred < x & predictions_solo$winner)/sum(predictions_solo$winner))
+spec_lm = sapply(cutoff, function(x) sum(predictions_solo$lm_pred >= x & !predictions_solo$winner)/sum(!predictions_solo$winner))
+sens_lasso = sapply(cutoff, function(x) sum(predictions_solo$lasso_pred < x & predictions_solo$winner)/sum(predictions_solo$winner))
+spec_lasso = sapply(cutoff, function(x) sum(predictions_solo$lasso_pred >= x & !predictions_solo$winner)/sum(!predictions_solo$winner))
+sens_rf = sapply(cutoff, function(x) sum(predictions_solo$rf_pred < x & predictions_solo$winner)/sum(predictions_solo$winner))
+spec_rf = sapply(cutoff, function(x) sum(predictions_solo$rf_pred >= x & !predictions_solo$winner)/sum(!predictions_solo$winner))
+
+data.frame(cutoff = rep(cutoff, 3),
+           sens = c(sens_lm, sens_lasso, sens_rf),
+           spec = c(spec_lm, spec_lasso, spec_rf),
+           model = rep(c("Linear", "Elastic Net", "Random Forest"), each = length(cutoff))) %>%
+  ggplot(aes(x = 1-spec, y = sens, color = model)) + 
+  geom_point() + 
+  geom_line() + 
+  theme_bw()  +
+  labs(title = "ROC Curve",
+       x = "False Positive Rate (1 - Specificity)",
+       y = "Sensitivity",
+       color = "Model")
 ```
 
-From the above plots, we can see that random forest performs best on both metrics. This is despite the restrictions we had to place in order to run the random forest model in a reasonable amount of time. Its MAE is 0.054, which means that on average, the predicted win place percentage is 0.057 off from the true win place percentage. Its SDAM is consistently higher than the SDAM for linear regression or elastic net regression. For example, its SDAM(5) is 0.604, which means that for 60.4% of observations in our validation set, the predicted value is within 5% of the true win place percentage.
+From the above plots, we can see that random forest performs best on all three metrics. This is despite the restrictions we had to place in order to run the random forest model in a reasonable amount of time. Its MAE is 0.054, which means that on average, the predicted win place percentage is 0.054 off from the true win place percentage. Its SDAM is consistently higher than the SDAM for linear regression or elastic net regression. For example, its SDAM(5) is 0.604, which means that for 60.4% of observations in our validation set, the predicted value is within 5% of the true win place percentage. Lastly, the area under its ROC curve is the largest, which indicates that it performs best at classifying who the winners are (sensitivity = 0.91, specificity = 0.96). 
 
 ## Performance on Test Set
 
@@ -449,10 +472,12 @@ As we have found that the random forest model has the highest accuracy in the tr
 
 ```{r lm_test}
 pred_test = data.frame(rf_test_pred = predict(rf_model, test_solo)) %>%
-  mutate(rf_test_ae = abs(rf_test_pred - test_solo$win_place_perc),
-         rf_test_correct = rf_test_ae <= 0.05)
+  mutate(win_place_perc = test_solo$win_place_perc,
+         rf_test_ae = abs(rf_test_pred - win_place_perc),
+         rf_test_correct = rf_test_ae <= 0.05,
+         winner = ifelse(win_place_perc == 0, 1, 0))
 
-# Plot percent of observations with predictions falling within x% of true outcome
+# Plot SDAM
 cutoff = seq(0, 0.5, by = 0.01)
 prop_test = sapply(cutoff, function(x) mean(pred_test$rf_test_ae < x))
 data.frame(cutoff = rep(cutoff, 2), 
@@ -468,15 +493,33 @@ data.frame(cutoff = rep(cutoff, 2),
        subtitle = "Proportion of Predictions Within x% of Actual Win Place Percentage",
        x = "|Predicted - Actual Win Place Percentage|",
        y = "SDAM",
-       color = "Model") +
+       color = "Dataset") +
   theme_bw()
+
+# Plot ROC
+cutoff = seq(0, 1, by = 0.01)
+sens_test_rf = sapply(cutoff, function(x) sum(pred_test$rf_test_pred < x & pred_test$winner)/sum(pred_test$winner))
+spec_test_rf = sapply(cutoff, function(x) sum(pred_test$rf_test_pred >= x & !pred_test$winner)/sum(!pred_test$winner))
+
+data.frame(cutoff = rep(cutoff, 2),
+           sens = c(sens_rf, sens_test_rf),
+           spec = c(spec_rf, spec_test_rf),
+           set = rep(c("Validation", "Test"), each = length(cutoff))) %>%
+  ggplot(aes(x = 1-spec, y = sens, color = set)) + 
+  geom_point() + 
+  geom_line() + 
+  theme_bw()  +
+  labs(title = "ROC Curve",
+       x = "False Positive Rate (1 - Specificity)",
+       y = "Sensitivity",
+       color = "Dataset")
 
 pred_test_metrics = pred_test %>%
   summarize(rf_test_mae = mean(rf_test_ae),
             rf_test_sdam = mean(rf_test_correct))
 ```
 
-On the test set, random forest has a MAE of `r round(pred_test_metrics$rf_test_mae, 3)` and a SDAM(5) of `r round(pred_test_metrics$rf_test_sdam, 3)`, which is similar to what we saw in the validation set. We can also see in the above plot that the random forest model performs equally well in the test set as in the validation set.
+On the test set, random forest has a MAE of `r round(pred_test_metrics$rf_test_mae, 3)` and a SDAM(5) of `r round(pred_test_metrics$rf_test_sdam, 3)`, which is similar to what we saw in the validation set. We can in the above plots of SDAM and ROC that the random forest model performs equally well in the test set as in the validation set.
 
 ## Summary
 
