@@ -212,6 +212,7 @@ corr_matrix = train_solo %>%
 
 corrplot(corr_matrix, method = "color", type = "upper")
 ```
+
 # Dimension reduction and clustering
 
 We can try the following and see which one gives us a better story:
@@ -465,13 +466,13 @@ While there is not much agreement in the features that each model regards to be 
 
 Let's take a look at the importance score for random forest. The top two features are `kill_place` and `num_group`. From our earlier analysis with principal components analysis, we know that incidentally, `kill_place` is a primary factor in the first principal component and `num_groups` is a primary factor in the second principal component. Taking these results into account, it suggests that the largest variation we see in the features are also the most important signals for predicting the outcome. 
 
-# Summary
+To summarize:
 
 1. The most important predictor is the number of kills a player makes. The strongest signal lies in the relative number of kills, as indicated by `kill_place`, rather than the absolute number of `kills` or other aggressivenss indicators like `weapons_acquired`, `kill_streaks`, and `headshot_kills`. What this suggests is that while a few players may succeed with less confrontational playing strategies, the vast majority of top players pursue highly aggressive tactics. In the context of battle royale games, this means that you need to kill other players or you will be eliminated.
 
 2. Among items used, `boosts` and `weapons_acquired` are the strongest predictors of outcome. This is interesting because one would expect that among items, weapons would be the dominant predictor. However, while the acquisition of weapons may plateau over time once you have strong weapons. On the other hand, `boosts`, which allow you to gain health above 75% and have a small movement speed bonus, are more likely to be something you have to consistently use throughout the game, since in the latter stages of the game, even the strongest players are likely to take some damage. Moreover, `boosts` provide a stronger signal than `heals`, since the strongest players are less likely to take severe damage and require `heals`.
 
-3. Another important element in prediction is the number of players in a game, as indicated by `num_group` and `max_place`. This is likely due to an artifact in sampling in the data. That is, for matches with a lower number of players, it is easier to sample players that place lower, in comparison to matches with a higher number of players. In fact, we can see this phenomenon in the princiapl components plot. As it doesn't have any correspondence to actual playing style, it is of less interest to us. 
+3. Another important element in prediction is the number of players in a game, as indicated by `num_group` and `max_place`. This is likely due to an artifact in sampling in the data. That is, for matches with a lower number of players, it is more likely that we have data for players that place lower, in comparison to matches with a higher number of players. In fact, as stated in the PCA section, we can see this phenomenon in the princiapl components plot. As this aspect doesn't have any correspondence to actual playing style, it is of less interest to us. 
 
 ## Comparison of Models
 
@@ -634,8 +635,6 @@ With the random forest model in particular, we can see from its figure of predic
 
 # Narrative and Summary
 
-1. Features can be categorize into groups using PCA: The most important group is kills, followed by number of players. In terms of items, boosts are equally important as weapons. 
+1. Important features: The most important group of features is kills, followed by number of players. In terms of usage of items, boosts are equally important as weapons. 
 
-2. With our random forest model, we can achieve an accuracy of X.
-
-3. 
+2. With our random forest model, we can achieve an accuracy of X. 
