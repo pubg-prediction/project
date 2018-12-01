@@ -76,11 +76,10 @@ clean_dat = raw_dat %>%
 
 ## Variables
 
-Each row in the data contains one player's post-game stats. A description of all data fields is provided in `data/pubg_codebook.csv`. We will focus on the solo game mode (`match_type` is solo, solo-fpp, or normal-solo-fpp). The solo game mode constitutes about 16% of the data, with 720,386 observations. The outcome variable we are trying to predict is `win_place_perc`. 
+Each row in the data contains one player's post-game stats. A description of all data fields is provided in `data/pubg_codebook.csv`. We will focus on the solo game mode (`match_type` is solo, solo-fpp, or normal-solo-fpp). The solo game mode constitutes about 16% of the data, with 720,386 observations. The outcome variable we are trying to predict is `win_place_perc`.
 
 ```{r clean_data}
 solo_dat <- clean_dat %>% 
-  #sample_n(10000) %>%
   filter(match_type %in% c("solo", "solo-fpp", "normal-solo-fpp")) %>%
   select(-dbn_os, -assists, -revives, -group_id, -match_type, -team_kills) %>%        # Remove features that are not relevant to solo mode
   mutate(kill_points = ifelse(rank_points == -1 & kill_points == 0, NA, kill_points), # Following codebook explanations
@@ -88,35 +87,19 @@ solo_dat <- clean_dat %>%
          rank_points = ifelse(rank_points == -1, NA, rank_points),
          id = as.factor(id), 
          match_id = as.factor(match_id)) %>%
-  select(-kill_points, -win_points, -rank_points)    # Variables being deprecated
+  select(-kill_points, -win_points, -rank_points, -num_groups) # Variables being deprecated and incorrect variables
 ```
 
-## Remove matches 
+Additionally, we remove matches in which we have more observations than the max number of players as this is not possible. 
 
-**Need to edit this section**
-
-```{r prop_data}
+```{r prop_data_clean}
 # Compute proportions
 prop_data = solo_dat %>% 
   group_by(match_id, max_place, match_duration) %>% 
   count() %>%
   ungroup() %>%
   mutate(prop = n/max_place,
-         remove_game = prop > 1)
-
-# Games with proportion greater than 100%
-prop_over_100 = prop_data %>%
-  summarize(prop_n = sum(prop > 1),
-            prop_games = prop_n/n())
-
-# Histogram
-prop_data %>%
-  ggplot(aes(x = prop)) + 
-  geom_histogram(bins = 30, color = 'white') +
-  labs(title = "Proportion of players we have data for in a game",
-       x = "Proportion",
-       y = "Count") +
-  theme_minimal()
+         remove_game = prop > 1) 
 
 # Remove games with proportion greater than 100%
 remove_match_ids = prop_data %>%
@@ -127,18 +110,15 @@ solo_dat = solo_dat %>%
   filter(!(match_id %in% remove_match_ids))
 ```
 
-For most games, we have between 70% to 90% of the players' data, using `max_place` (the worst placement for which we have data) as a proxy for total number of players. For `r prop_over_100$prop_n` games (`r round(prop_over_100$prop_games*100, 2)`% of all games), we have more observations than `max_place`, which is not possible. Thus, we excluded these games from our analysis.
-
-
 ## Training and Test Set 
 
-We are given a training set and a test set. The outcome variable for the test set will not be provided until the end of the Kaggle competition in Jan. 30th, 2019. Therefore, for the purposes of this project, we will only be using the provided training set. Due to computational costs, we will only use 100,000 observations (7% of the available data). Within this set, we will create our own "training" (60%), "validation" (20%), and "test" set (20%). For the rest of the document, the "training set" refers to the one we've created.
+We are given a training set and a test set. The outcome variable for the test set will not be provided until the end of the Kaggle competition in Jan. 30th, 2019. Therefore, for the purposes of this project, we will only be using the provided training set. Due to computational costs, we will only use observations from 2000 of the matches (23% of the available data). Within this set, we will create our own "training" (60%), "validation" (20%), and "test" set (20%). For the rest of the document, the "training set" refers to the one we've created.
 
 ```{r train_test_split}
-# Sample 100,000 observations
+# Sample 2000 matches
 set.seed(1)
-solo_dat = solo_dat %>%
-  sample_n(100000)
+matches = sample(solo_dat$match_id, 2000, replace = FALSE)
+solo_dat = solo_dat %>% filter(match_id %in% matches)
 
 # Split into train and test
 train_ind = createDataPartition(y = solo_dat$win_place_perc, p = 0.6, list = F)
@@ -162,6 +142,23 @@ glimpse(train_solo)
 In the training set, we have `r n_distinct(train_solo$id)` players and `r n_distinct(train_solo$match_id)` matches. 
 
 # Exploratory Data Analysis
+
+## Proportion of Match Data 
+
+For all games, we have complete information of all players' data, using `max_place` (the worst placement for which we have data) as a proxy for total number of players. 
+
+```{r prop_data}
+# Compute proportions
+prop_data = solo_dat %>% 
+  group_by(match_id, max_place, match_duration) %>% 
+  count() %>%
+  ungroup() %>%
+  mutate(prop = n/max_place,
+         remove_game = prop > 1)
+
+# Look at how many complete match data we have
+table(prop_data$prop)
+```
 
 ## Distribution of Features by Finish Percentile
 
