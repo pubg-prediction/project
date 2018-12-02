@@ -43,7 +43,7 @@ We thought that it would serve as a good final project idea for this class, sinc
 
 ## Initial Questions
 
-The main goal of this project is to predict a player's finish placement based on their in-game actions. Specifically, the three subquestions of interest are:
+The main goal of this project is to predict a solo player's finish placement based on their in-game actions. Specifically, the three subquestions of interest are:
 
 1. **Model Prediction Accuracy**: How well can we predict a player's finish placement?
 2. **Feature Ranking**: What player actions or statistics are most predictive of their finish placement?
@@ -112,7 +112,11 @@ solo_dat = solo_dat %>%
 
 ## Training and Test Set 
 
-We are given a training set and a test set. The outcome variable for the test set will not be provided until the end of the Kaggle competition in Jan. 30th, 2019. Therefore, for the purposes of this project, we will only be using the provided training set. Due to computational costs, we will only use observations from 2000 of the matches (23% of the available data). Within this set, we will create our own "training" (60%), "validation" (20%), and "test" set (20%). For the rest of the document, the "training set" refers to the one we've created.
+We are given a training set and a test set. The outcome variable for the test set will not be provided until the end of the Kaggle competition in Jan. 30th, 2019. Therefore, for the purposes of this project, we will only be using the provided training set. Due to computational costs, we will only use observations from 2000 of the matches (23% of the available data). Within this set, we will create our own "training" (60%), "validation" (20%), and "test" set (20%). 
+
+Note that `createDataPartition` splits the samples into group sections based on the `win_place_percentile` then randomly samples within the subgroup with $p = 0.6$. This way, the testing, training, and validation sets have approximately similar proportions of each win percentile. However, we can similarly achieve equal percentile distributions by sampling matches as we have full player data for all matches.  
+
+For the rest of the document, the "training set" refers to the one we've created.
 
 ```{r train_test_split}
 # Sample 2000 matches
@@ -121,44 +125,27 @@ matches = sample(solo_dat$match_id, 2000, replace = FALSE)
 solo_dat = solo_dat %>% filter(match_id %in% matches)
 
 # Split into train and test
-train_ind = createDataPartition(y = solo_dat$win_place_perc, p = 0.6, list = F)
+train_ind = sample(c(T,F), p = c(0.6, 0.4), size = length(unique(solo_dat$match_id)), replace = TRUE)
 train_solo = solo_dat %>%
-  slice(train_ind)
+  filter(match_id %in% unique(solo_dat$match_id)[train_ind])
 temp_solo = solo_dat %>%
-  slice(-train_ind)
+  filter(!(match_id %in% unique(solo_dat$match_id)[train_ind]))
 
 # Split into validation and test
-test_ind = createDataPartition(y = temp_solo$win_place_perc, p = 0.5, list = F)
+test_ind = sample(c(T,F), p = c(0.5, 0.5), size = length(unique(temp_solo$match_id)), replace = TRUE)
 val_solo = temp_solo %>%
-  slice(-test_ind)
+  filter(match_id %in% unique(temp_solo$match_id)[test_ind])
 test_solo = temp_solo %>%
-  slice(test_ind)
+  filter(!(match_id %in% unique(temp_solo$match_id)[test_ind]))
 ```
 
 ```{r}
 glimpse(train_solo)
 ```
 
-In the training set, we have `r n_distinct(train_solo$id)` players and `r n_distinct(train_solo$match_id)` matches. 
+In the training set, we have `r n_distinct(train_solo$id)` players and `r n_distinct(train_solo$match_id)` matches.
 
 # Exploratory Data Analysis
-
-## Proportion of Match Data 
-
-For all games, we have complete information of all players' data, using `max_place` (the worst placement for which we have data) as a proxy for total number of players. 
-
-```{r prop_data}
-# Compute proportions
-prop_data = solo_dat %>% 
-  group_by(match_id, max_place, match_duration) %>% 
-  count() %>%
-  ungroup() %>%
-  mutate(prop = n/max_place,
-         remove_game = prop > 1)
-
-# Look at how many complete match data we have
-table(prop_data$prop)
-```
 
 ## Distribution of Features by Finish Percentile
 
@@ -185,8 +172,6 @@ train_solo %>%
   theme_minimal() + 
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
-  
-**Note: Need to resolve warning (non-finite values)**
 
 Some interesting relationships between the features and the finish percentile:
 
@@ -196,23 +181,16 @@ Some interesting relationships between the features and the finish percentile:
 
 - **Distance Traveled** (`walk_distance`, `swim_distance`, and `ride_distance`): Players who finish higher tend to have walked farther. This is likely because they simply survive longer and are force to travel to stay in the safe zone, whereas players who die early don't get a chance to travel very far. Both swimming and riding in vehicles are rare occurrences, though it appears that players who finish higher also tend to do more of both.
 
-(Additional notes to ourselves regarding some features of the data we might want to look at):
-
-* `kill_place`, `kill_points`, `kills`, and `win_points` follow bimodal distributions. This may reflect the play-styles of each player. Players who land in populated areas are more likely to encounter other players, resulting in a higher porbability of dying or a larger number of kills if the player survives. Thus, we can partition players in the 10th percentile finish into two categories: a skilled player who but dies early due to dropping in a populated location, but due to their skill acquires a large number of kills or a less-skilled player who dies early due to lack of skill despite dropping in a less populated location. 
-* Some features look highly skewed (e.g. `longest_kill`, `ride_distance`, `swim_distance`, `ride_distance`, etc.). We may want to log-transform these variables in our model building. 
-* The `num_groups` density plots suggest that in games where we have little data, we tend to have data on the winners. Thus, there may be some imbalance in the data we will need to either adjust for to ensure that our model doesn't overestimate finish percentile. 
-* `rank_points`, `win_points` and `kill_points` are external characteristics (from previous games) that attempt to characterize the skill level of a player. These distributions are bimodal which may reflect the extremes of the two playstyles described above. It seems that `kill_points` has more predictive value of finish percentile as the right-shift is more distinct by finish percentage category than `rank_points`. Interestingly, `rank_points` suggests that prior-game ranks do not have a large impact on the final placement in a game (though there is a note int the `pubg_codebook.csv` file that this metric is deprecated). This makes sense since in-game variables like drop location, loot, and circle movement can affect how likely an individual is to win. 
-
 ## Correlation Plot
 
-Statistics related to `kills` seem to be well correlated with finish percentile. Additional duration of game does not seem to be strongly correlated with many of the in-game features such as `kills`, `walk_distance`, etc. 
+Statistics related to `kills` seem to be well correlated with finish percentile. Additionally, duration of game does not seem to be strongly correlated with many of the in-game features with the exception of `walk_distance`. 
 
 ```{r corr_plot, fig.width = 10, fig.height = 12}
 corr_matrix = train_solo %>% 
   select(-id, -match_id) %>% 
   cor()
 
-corrplot(corr_matrix, method = "color", type = "upper")
+corrplot(corr_matrix, method = "color", type = "upper", title = "Correlation Plot of Features")
 ```
 
 # Dimension reduction and clustering
@@ -257,14 +235,13 @@ fviz_pca_var(pc,
              )
 ```
 
-The first principal component explains much of the variance we see in our features (29.6%), while the second to sixth principal component all explain between 5 to 10%. The first three components cover over 50% of the variation we see in our data, as seen in the second plot. In the third plot, we visualize each feature's contribution to the first two principal components and their correlations.
+The first principal component explains much of the variance we see in our features (35.6%), while the second to sixth principal component all explain between 5 to 10%. The first three components cover over 50% of the variation we see in our data, as seen in the second plot. In the third plot, we visualize each feature's contribution to the first two principal components and their correlations.
 
-1. **PC 1**: The first principal component comprises of features related to damage and kills, primarily the features `kills`, `kill_place`, `damage_dealt`. To a lesser extent, features like `damage_dealt`, `longest_kill`, `headshot_kills`, `boosts`, and `heals` also exhibit contribution primarily to the first principal component. 
+1. **PC 1**: The first principal component comprises of features related to damage and kills, primarily the features `kills`, `kill_place`, `damage_dealt`. To a lesser extent, features like `kill_steaks`, `longest_kill`, `headshot_kills`, `boosts`, and `heals` also exhibit contribution primarily to the first principal component. 
 
-2. **PC 2**: The second principal component is characterized by details related to the match setting, i.e. `num_groups` and `max_place`.
+2. **PC 2**: The second principal component is characterized by details related to the match setting, i.e. `match_duration` and `ride_distance`(which we noted earlier was correlated with match duration).
 
-3. **PC 3**: We can examine the table of contributions to each principal component to deduce which features contribute the most to the third principal component. The third principal component explains variation in features not well-represented in the first two components, such as `match_duration` and `ride_distance`.
-
+3. **PC 3**: We can examine the table of contributions to each principal component to deduce which features contribute the most to the third principal component. The third principal component explains variation in features not well-represented in the first two components, such as `road_kills` and `swim_distance`.
 
 ```{r pca_points}
 # Plot points on principal components 1 and 2 
@@ -293,14 +270,9 @@ data.frame(PC2 = pc$x[,2], PC3 = pc$x[,3]) %>%
   theme_bw()
 ```
 
-Our outcome feature `win_place_perc` is pretty well explained by the first principal component, as lower values correspond to a higher win place percent. Similarly, we also see correlation between win place percentage and the second and third principal components. This suggests that the largest variations in the features can explain the variation in the outcome as well. We will explore this further in the feature ranking section.
+Our outcome feature `win_place_perc` is pretty well explained by the first two principal components, as lower PC1 and high PC2 values correspond to a higher win place percent. Similarly, we also see correlation between win place percentage and the second and third principal components. This suggests that the largest variations in the features can explain the variation in the outcome as well. We will explore this further in the feature ranking section.
 
 It's worth noting that there appears to be higher proportions of a high win place percent for higher values of the second principal component (more players in a game). This suggests that the sampling distribution across win place percent is not the same for games with higher or lower numbers of players.
-
-## K-means
-
-To-do:
-1. K-means clustering. It seems to me like aggressive playing styles are highly predictive for winning, but we can investigate whether there are other types of successful playing styles.
 
 
 # Prediction Models & Feature Ranking
@@ -340,10 +312,10 @@ predictions_solo = data.frame(win_place_perc = val_solo$win_place_perc,
 
 # Plot predicted vs true values
 predictions_solo %>%
-  ggplot(aes(x = lm_pred, y = win_place_perc)) +
+  ggplot(aes(x = win_place_perc, y = lm_pred)) +
   geom_point(alpha = 0.5, size = 0.1) +
   labs(title = "Predicted Versus Actual Win Place Percentage (Linear Regression)", 
-       x = "Predicted Win Place Percentage", y = "Actual Win Place Percentage") +
+       x = "Actual Win Place Percentage", y = "Predicted Win Place Percentage") +
   theme_bw()
 ```
 
@@ -368,10 +340,10 @@ predictions_solo = predictions_solo %>%
 
 # Plot predicted vs true values
 predictions_solo %>%
-  ggplot(aes(x = lasso_pred, y = win_place_perc)) +
+  ggplot(aes(x = win_place_perc, y = lasso_pred)) +
   geom_point(alpha = 0.5, size = 0.1) +
-  labs(title = "Predicted Versus Actual Win Place Percentage (Elastic Net)", 
-       x = "Predicted Win Place Percentage", y = "Actual Win Place Percentage") +
+  labs(title = "Predicted Versus Actual Win Place Percentage (Lasso Regression)", 
+       x = "Actual Win Place Percentage", y = "Predicted Win Place Percentage") +
   theme_bw()
 ```
 
@@ -404,10 +376,10 @@ predictions_solo = predictions_solo %>%
 
 # Plot predicted vs true values
 predictions_solo %>%
-  ggplot(aes(x = rf_pred, y = win_place_perc)) +
+  ggplot(aes(x = win_place_perc, y = rf_pred)) +
   geom_point(alpha = 0.5, size = 0.1) +
-  labs(title = "Predicted Versus Actual Win Place Percentage (Random forest)", 
-       x = "Predicted Win Place Percentage", y = "Actual Win Place Percentage") +
+  labs(title = "Predicted Versus Actual Win Place Percentage (Random Forest)", 
+       x = "Actual Win Place Percentage", y = "Predicted Win Place Percentage") +
   theme_bw()
 ```
 
@@ -474,7 +446,6 @@ To summarize:
 
 2. Among items used, `boosts` and `weapons_acquired` are the strongest predictors of outcome. This is interesting because one would expect that among items, weapons would be the dominant predictor. However, while the acquisition of weapons may plateau over time once you have strong weapons. On the other hand, `boosts`, which allow you to gain health above 75% and have a small movement speed bonus, are more likely to be something you have to consistently use throughout the game, since in the latter stages of the game, even the strongest players are likely to take some damage. Moreover, `boosts` provide a stronger signal than `heals`, since the strongest players are less likely to take severe damage and require `heals`.
 
-3. Another important element in prediction is the number of players in a game, as indicated by `num_group` and `max_place`. This is likely due to an artifact in sampling in the data. That is, for matches with a lower number of players, it is more likely that we have data for players that place lower, in comparison to matches with a higher number of players. In fact, as stated in the PCA section, we can see this phenomenon in the princiapl components plot. As this aspect doesn't have any correspondence to actual playing style, it is of less interest to us. 
 
 ## Comparison of Models
 
@@ -566,7 +537,7 @@ data.frame(cutoff = rep(cutoff, 3),
 
 ```
 
-From the above plots, we can see that random forest performs best on all three metrics. This is despite the restrictions we had to place in order to run the random forest model in a reasonable amount of time. Its MAE is 0.054, which means that on average, the predicted win place percentage is 0.054 off from the true win place percentage. Its SDAM is consistently higher than the SDAM for linear regression or elastic net regression. For example, its SDAM(5) is 0.604, which means that for 60.4% of observations in our validation set, the predicted value is within 5% of the true win place percentage. Lastly, the area under its ROC curve is the largest, which indicates that it performs best at classifying who the winners are (sensitivity = 0.91, specificity = 0.81). 
+From the above plots, we can see that random forest performs best on all three metrics. This is despite the restrictions we had to place in order to run the random forest model in a reasonable amount of time. Its MAE is 0.058, which means that on average, the predicted win place percentage is 0.058 off from the true win place percentage. Its SDAM is consistently higher than the SDAM for linear regression or elastic net regression. For example, its SDAM(5) is 0.604, which means that for 60.4% of observations in our validation set, the predicted value is within 5% of the true win place percentage. Lastly, the area under its ROC curve is the largest, which indicates that it performs best at classifying who the winners are (sensitivity = 0.91, specificity = 0.81). 
 
 ## Performance on Test Set
 
