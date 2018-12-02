@@ -45,9 +45,10 @@ We thought that it would serve as a good final project idea for this class, sinc
 
 The main goal of this project is to predict a solo player's finish placement based on their in-game actions. Specifically, the three subquestions of interest are:
 
-1. **Model Prediction Accuracy**: How well can we predict a player's finish placement?
-2. **Feature Ranking**: What player actions or statistics are most predictive of their finish placement?
-3. **Clustering**: Which playing styles are most successful?
+1. **Feature Ranking**: What player actions or statistics are most predictive of their finish placement?
+2. **Clustering**: Which playing styles are most successful?
+3. **Model Prediction Accuracy**: How well can we predict a player's finish placement?
+
 
 # Data
 
@@ -181,6 +182,7 @@ Some interesting relationships between the features and the finish percentile:
 
 - **Distance Traveled** (`walk_distance`, `swim_distance`, and `ride_distance`): Players who finish higher tend to have walked farther. This is likely because they simply survive longer and are force to travel to stay in the safe zone, whereas players who die early don't get a chance to travel very far. Both swimming and riding in vehicles are rare occurrences, though it appears that players who finish higher also tend to do more of both.
 
+
 ## Correlation Plot
 
 Statistics related to `kills` seem to be well correlated with finish percentile. Additionally, duration of game does not seem to be strongly correlated with many of the in-game features with the exception of `walk_distance`. 
@@ -195,11 +197,7 @@ corrplot(corr_matrix, method = "color", type = "upper", title = "Correlation Plo
 
 # Dimension reduction and clustering
 
-We can try the following and see which one gives us a better story:
-
-1. We can do PCA, plot observations along principal components, color points by outcome, and then try to interpret the top principal components in terms of the features.
-
-2. Manually summarize the features into something like the 3-4 categories described in the exploratory data analysis section, i.e. engineer a summary feature for "damage/kills", another summary feature for "distance travelled." Consult correlation plot and PCA plot to get good groupings as well. Then plot observations along these summary features and color points by outcome. This is basically the same idea as PCA except we already have a story in place for what the components mean.
+To look at the features that contribute to the largest variability within the covariates, we can use principal components analysis (PCA). 
 
 ## Principal Components Analysis
 
@@ -274,6 +272,36 @@ Our outcome feature `win_place_perc` is pretty well explained by the first two p
 
 It's worth noting that there appears to be higher proportions of a high win place percent for higher values of the second principal component (more players in a game). This suggests that the sampling distribution across win place percent is not the same for games with higher or lower numbers of players.
 
+## K-Means Clustering
+
+Since the probability of winning increases as the number of players decrease, it is to the players' advantage to eliminate players rather than just damage players. Thus, players tend to take two approaches to the game:
+
+1. **Aggressive Strategy**: players (usually of higher skill) drop in a populated location and attempt to take control of the location. This is a high-risk and high-reward strategy as players are more likely to die due to an increased number of encounters but are rewarded with superior weapons and boosts.
+
+2. **Passive Strategy**: rather than eliminating other players yourself, the pasive strategy relies on surviving until other players have been eliminated. This typically involves hiding to minimize encounters until only a few players remain, then selectively taking fights until the player is the only one remaining.
+
+To explore whether we could identify strategies to win, we looked at the distribution of the percentage of total players killed by game winners. 
+
+```{r k_means_exp}
+train_solo %>% filter(win_place_perc == 1) %>%
+  mutate(prop_killed = kills/max_place) %>%
+  ggplot(aes(x = prop_killed)) +
+  geom_histogram(aes(y = ..density..), color = 'white', binwidth = 0.01) +
+  geom_density(color = 'blue') +
+  labs(title = "Distribution in Proportion of Players Killed for Match Winners", 
+       x = "Proportion of Players Killed", y = "Density") +
+  theme_bw()
+```
+
+If winners used a variety of aggression strategies, we would expect to see a multi-modal distribution in the proportion of players killed for match winners. However, a histogram of the data reveals that for the most part, winners tend to eliminate on average `r round(mean(train_solo %>% filter(win_place_perc == 1) %>% mutate(prop_killed = kills/max_place) %>% .$prop_killed),2)` of players in the match. It is worth noting that there is a decent fraction of winners with 0 to 0.1 proportion of players killed (where the winner likely eliminated only the second place player), but the small mass indicates that the passive approach tends to be less successful. 
+
+Additionally, after futher consideration of the data, we realized that does not seem well suited to address the question of strategies for success for the following reasons:
+
+1. We characterize player strategy by the proportion of total players killed. However, players who are more skilled (i.e. more accurate in their shots, better at positioning, etc.) tend to favor an aggressive strategy while players less confidence in their mechanical skill may favor a passive strategy. Thus, rather than measuring the effectiveness of a strategy, we would be looking at the mechanical skill of a player.
+
+2. Aggressive players would likely be killing throughout the whole game while passive players would have most of their kills concentrated in the end. Thus, longitudinal data about when a player killed another player or data on where a particular player dropped on the map may be more suited to understand the effectiveness of player strategies. 
+
+Thus, we did explore strategies for success via k-means clustering as k-means clustering always results in $k$ clusters, whether those clusters truly exist or not. 
 
 # Prediction Models & Feature Ranking
 
@@ -605,6 +633,9 @@ We use three different models to predict the win place percentage: linear regres
 With the random forest model in particular, we can see from its figure of predicted vs actual values that our predictions are more accurate for players with higher placements. This makes sense since there should be increasingly higher demands on skill the higher you place and therefore more signal in the data. In other words, the difference in skill between a player who places 60 vs a player who places 90 out of 100 is likely much smaller than the difference between a player who places 1 vs a player who places 30 out of 100. As a result, we can more accurately distinguish between places the higher you place. 
 
 # Narrative and Summary
+
+From our analysis of PUBG player data, we have found that 
+What characterizes a top performing PUBG player? Can we identify different playstyles for success? And 
 
 1. Important features: The most important group of features is kills, followed by number of players. In terms of usage of items, boosts are equally important as weapons. 
 
