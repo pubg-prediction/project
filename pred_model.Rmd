@@ -45,9 +45,9 @@ We thought that it would serve as a good final project idea for this class, sinc
 
 The main goal of this project is to predict a solo player's finish placement based on their in-game actions. Specifically, the three subquestions of interest are:
 
-1. **Feature Ranking**: What player actions or statistics are most predictive of their finish placement?
-2. **Clustering**: Which playing styles are most successful?
-3. **Model Prediction Accuracy**: How well can we predict a player's finish placement?
+1. **Clustering**: Which playing styles are most successful?
+2. **Model Prediction Accuracy**: How well can we predict a player's finish placement?
+3. **Feature Ranking**: What player actions or statistics are most predictive of their finish placement?
 
 
 # Data
@@ -270,15 +270,13 @@ data.frame(PC2 = pc$x[,2], PC3 = pc$x[,3]) %>%
 
 Our outcome feature `win_place_perc` is pretty well explained by the first two principal components, as lower PC1 and high PC2 values correspond to a higher win place percent. Similarly, we also see correlation between win place percentage and the second and third principal components. This suggests that the largest variations in the features can explain the variation in the outcome as well. We will explore this further in the feature ranking section.
 
-It's worth noting that there appears to be higher proportions of a high win place percent for higher values of the second principal component (more players in a game). This suggests that the sampling distribution across win place percent is not the same for games with higher or lower numbers of players.
-
 ## K-Means Clustering
 
 Since the probability of winning increases as the number of players decrease, it is to the players' advantage to eliminate players rather than just damage players. Thus, players tend to take two approaches to the game:
 
 1. **Aggressive Strategy**: players (usually of higher skill) drop in a populated location and attempt to take control of the location. This is a high-risk and high-reward strategy as players are more likely to die due to an increased number of encounters but are rewarded with superior weapons and boosts.
 
-2. **Passive Strategy**: rather than eliminating other players yourself, the pasive strategy relies on surviving until other players have been eliminated. This typically involves hiding to minimize encounters until only a few players remain, then selectively taking fights until the player is the only one remaining.
+2. **Passive Strategy**: rather than eliminating other players yourself, the passive strategy relies on surviving until other players have been eliminated. This typically involves hiding to minimize encounters until only a few players remain, then selectively taking fights until the player is the only one remaining.
 
 To explore whether we could identify strategies to win, we looked at the distribution of the percentage of total players killed by game winners. 
 
@@ -295,7 +293,7 @@ train_solo %>% filter(win_place_perc == 1) %>%
 
 If winners used a variety of aggression strategies, we would expect to see a multi-modal distribution in the proportion of players killed for match winners. However, a histogram of the data reveals that for the most part, winners tend to eliminate on average `r round(mean(train_solo %>% filter(win_place_perc == 1) %>% mutate(prop_killed = kills/max_place) %>% .$prop_killed),2)` of players in the match. It is worth noting that there is a decent fraction of winners with 0 to 0.1 proportion of players killed (where the winner likely eliminated only the second place player), but the small mass indicates that the passive approach tends to be less successful. 
 
-Additionally, after futher consideration of the data, we realized that does not seem well suited to address the question of strategies for success for the following reasons:
+Additionally, after further consideration of the data, we realized that does not seem well suited to address the question of strategies for success for the following reasons:
 
 1. We characterize player strategy by the proportion of total players killed. However, players who are more skilled (i.e. more accurate in their shots, better at positioning, etc.) tend to favor an aggressive strategy while players less confidence in their mechanical skill may favor a passive strategy. Thus, rather than measuring the effectiveness of a strategy, we would be looking at the mechanical skill of a player.
 
@@ -320,7 +318,7 @@ In training our models, unless stated otherwise, we will include all features ex
 
 ## Linear Regression
 
-First, we fit a linear regression model with 5-fold cross-validation. Since the win place percentage is a value beteen 0 and 1, we apply a log transformation (adding 1 to ensure all values are defined), so that it better fulfills the assumption that $y$ is a continuous variable on the real line. However, this still doesn't guarantee that the predicted values will be between 0 and 1, so we constrain the predicted value to be 0 if it is negative and 1 if it is above 1. 
+First, we fit a linear regression model with 5-fold cross-validation. Since the win place percentage is a value between 0 and 1, we apply a log transformation (adding 1 to ensure all values are defined), so that it better fulfills the assumption that $y$ is a continuous variable on the real line. However, this still doesn't guarantee that the predicted values will be between 0 and 1, so we constrain the predicted value to be 0 if it is negative and 1 if it is above 1. 
 
 ```{r lm}
 set.seed(1)
@@ -349,7 +347,7 @@ predictions_solo %>%
 
 ## Elastic net regression
 
-As we noted earlier in the data exploration, some of the features are highly correlated and/or seem to provide little signal (such as distance traveled). To solve these issues, we implement elastic net regression which uses a ridge-regression-like penalty to adjust for correlated features and lasso penalty to shrink non-informative features to zero. Using 5-fold cross-validation in the training set, we tune regularization hyperparameters. 
+As we noted earlier in the data exploration, some of the features are highly correlated and/or seem to provide little signal (such as distance traveled). To solve these issues, we implement elastic net regression which uses a ridge-regression-like penalty to adjust for correlated features and lasso penalty to shrink non-informative features to zero. Using 5-fold cross-validation in the training set, we tune regularization hyper parameters. 
 
 ```{r lasso}
 set.seed(1)
@@ -383,7 +381,7 @@ To account for correlation between features, another option is to use a random f
 2. Use only the top 10 features (out of 19 features) determined by elastic net regression.
 3. Use 100 trees in the random forest.
 
-Again with 5-fold cross-validation, we tune hyperparameters for random forest.
+Again with 5-fold cross-validation, we tune hyper parameters for random forest.
 
 ```{r rf}
 set.seed(1)
@@ -470,9 +468,9 @@ Let's take a look at the importance score for random forest. The top two feature
 
 To summarize:
 
-1. The most important predictor is the number of kills a player makes. The strongest signal lies in the relative number of kills, as indicated by `kill_place`, rather than the absolute number of `kills` or other aggressivenss indicators like `weapons_acquired`, `kill_streaks`, and `headshot_kills`. What this suggests is that while a few players may succeed with less confrontational playing strategies, the vast majority of top players pursue highly aggressive tactics. In the context of battle royale games, this means that you need to kill other players or you will be eliminated.
+1. The most important predictor is the number of kills a player makes. The strongest signal lies in the relative number of kills, as indicated by `kill_place`, rather than the absolute number of `kills` or other aggressiveness indicators like `weapons_acquired`, `kill_streaks`, and `headshot_kills`. What this suggests is that while a few players may succeed with less confrontational playing strategies, the vast majority of top players pursue highly aggressive tactics. In the context of battle royale games, this means that you need to kill other players or you will be eliminated.
 
-2. Among items used, `boosts` and `weapons_acquired` are the strongest predictors of outcome. This is interesting because one would expect that among items, weapons would be the dominant predictor. However, while the acquisition of weapons may plateau over time once you have strong weapons. On the other hand, `boosts`, which allow you to gain health above 75% and have a small movement speed bonus, are more likely to be something you have to consistently use throughout the game, since in the latter stages of the game, even the strongest players are likely to take some damage. Moreover, `boosts` provide a stronger signal than `heals`, since the strongest players are less likely to take severe damage and require `heals`.
+2. Among items used, `boosts` and `weapons_acquired` are the strongest predictors of outcome. This is interesting because one would expect that among items, weapons would be the dominant predictor. However, the acquisition of weapons may plateau over time once you have strong weapons. On the other hand, `boosts` enable increased health regeneration over time and have a small movement speed bonus when the amount of boosts consumed is beyond a particular threshold (and decays over time). Players tend to save boosts as an additional advantage in the later stages of the game when most players have powerful weapons. Consequently, the number of boosts consumed may be a stronger stronger signal than `heals`. 
 
 
 ## Comparison of Models
@@ -530,7 +528,7 @@ data.frame(cutoff = rep(cutoff, 3),
   geom_point() +
   geom_line() +
   geom_vline(xintercept = 0.05, linetype = "longdash", color = "slategray") +
-  annotate(geom = "text", x = 0.05, label="SDAM(0.05)", y = 0.8, colour = "slategray", angle = 90, vjust = -1.1) +
+  annotate(geom = "text", x = 0.05, label="SDAM(5)", y = 0.8, colour = "slategray", angle = 90, vjust = -1.1) +
   labs(title = "Comparison of SDAM",
        subtitle = "Proportion of Predictions Within x% of Actual Win Place Percentage",
        x = "|Predicted - Actual Win Place Percentage|",
@@ -565,7 +563,7 @@ data.frame(cutoff = rep(cutoff, 3),
 
 ```
 
-From the above plots, we can see that random forest performs best on all three metrics. This is despite the restrictions we had to place in order to run the random forest model in a reasonable amount of time. Its MAE is 0.058, which means that on average, the predicted win place percentage is 0.058 off from the true win place percentage. Its SDAM is consistently higher than the SDAM for linear regression or elastic net regression. For example, its SDAM(5) is 0.604, which means that for 60.4% of observations in our validation set, the predicted value is within 5% of the true win place percentage. Lastly, the area under its ROC curve is the largest, which indicates that it performs best at classifying who the winners are (sensitivity = 0.91, specificity = 0.81). 
+From the above plots, we can see that random forest performs best on all three metrics. This is despite the restrictions we had to place in order to run the random forest model in a reasonable amount of time. Its MAE is 0.058, which means that on average, the predicted win place percentage is 0.058 off from the true win place percentage. Its SDAM is consistently higher than the SDAM for linear regression or elastic net regression. For example, its SDAM(5) is 0.586, which means that for 58.6% of observations in our validation set, the predicted value is within 5% of the true win place percentage. Lastly, the area under its ROC curve is the largest, which indicates that it performs best at classifying who the winners are (sensitivity = 0.96, specificity = 0.82). 
 
 ## Performance on Test Set
 
@@ -626,7 +624,7 @@ On the test set, random forest has a MAE of `r round(pred_test_metrics$rf_test_m
 
 **Best-performing model: Random forest**
 
-We use three different models to predict the win place percentage: linear regression, elastic net regression, and random forest. Using mean absolute error (MAE), our self-defined accuracy metric (SDAM) quantifying the proportion of predictions that fall within x% of the true win place percentage, and the ROC curve, we found that the random forest model performed best on the validation set. On an independent test set, we achieved a MAE of `r round(pred_test_metrics$rf_test_mae, 3)` and an SDAM of `r round(pred_test_metrics$rf_test_sdam, 3)`. We also achieved a sensitivity of 0.91 and specificity 0.81, meaning that we are able to correctly classify 91% of winners correctly while correctly classifying 81% of losers.
+We use three different models to predict the win place percentage: linear regression, elastic net regression, and random forest. Using mean absolute error (MAE), our self-defined accuracy metric (SDAM) quantifying the proportion of predictions that fall within x% of the true win place percentage, and the ROC curve, we found that the random forest model performed best on the validation set. On an independent test set, we achieved a MAE of `r round(pred_test_metrics$rf_test_mae, 3)` and an SDAM of `r round(pred_test_metrics$rf_test_sdam, 3)`. We also achieved a sensitivity of 0.88 and specificity 0.86, meaning that we are able to correctly classify 88% of winners correctly while correctly classifying 86% of losers.
 
 **Higher predictive accuracy for top players**
 
@@ -634,9 +632,10 @@ With the random forest model in particular, we can see from its figure of predic
 
 # Narrative and Summary
 
-From our analysis of PUBG player data, we have found that 
-What characterizes a top performing PUBG player? Can we identify different playstyles for success? And 
+As casual gamers and biostatistics students, we are interested in features and strategies that characterize top-ranking PUBG players. To answer these questions, we looked at player data for solo-players in PUBG. The data consisted of 16 features describing player kills, damage, items used and acquired, and match attributes. In our exploratory data analysis, we noted that the more kills a player had, the more boosts used by a player, and the more weapons acquired by a player, the higher their final placement percentile. The importance of kills and boosts on ranking players was further reiterated by our principal components analysis and our prediction model for players' final placement percentile. 
 
-1. Important features: The most important group of features is kills, followed by number of players. In terms of usage of items, boosts are equally important as weapons. 
+To model player percentile finish, we used a simple linear model with stepwise model selection using AIC, elastic net regression, and random forest. Of the three models, random forest performed the best through comparison of the three models using MAE, SDAM, and ROC: on average, the predicted win place percentage is 0.058 off from the true win place percentage; 58.6% of predictions for the win place percentage in the validation set were within within 5% of the true win place percentage. The random forest model performed similarly well for the test and validation sets. 
 
-2. With our random forest model, we can achieve an accuracy of X. 
+Though we were unable to perform clustering to identify groups of individuals with similar game strategies due to the nature of the data, our data analysis seems to indicate that aggressive players who have more kills relative to other players perform better on average. 
+
+Our data analysis has a number of limitations. The first is that for computational purposes, we only used around 20% of the total amount of solo-player data. In the future, we could consider repeating the analysis with a larger data set. Second, we only examined solo player data, so our conclusions are not generalizable to group gameplay, which is complicated by aspects of teamwork such as revival and positioning. More work would need to be done to generalize our data analysis to group work. Finally, to provide a more complete answer to strategies for success, we would need longitudinal data regarding key gameplay events such as kills, deaths, the circle closing, and drop locations. 
