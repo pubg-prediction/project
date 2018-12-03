@@ -299,7 +299,7 @@ Additionally, after further consideration of the data, we realized that does not
 
 2. Aggressive players would likely be killing throughout the whole game while passive players would have most of their kills concentrated in the end. Thus, longitudinal data about when a player killed another player or data on where a particular player dropped on the map may be more suited to understand the effectiveness of player strategies. 
 
-Thus, we did explore strategies for success via k-means clustering as k-means clustering always results in $k$ clusters, whether those clusters truly exist or not. 
+Thus, we did not use k-means clustering to explore whether there were clusters of individuals who used similar strategies as k-means clustering always results in $k$ clusters, whether those clusters truly exist or not. 
 
 # Prediction Models & Feature Ranking
 
