@@ -14,7 +14,7 @@ knitr::opts_chunk$set(include = TRUE, comment = NA, warning = FALSE,
 
 ```{r packages, include = F, cache = F}
 library(pacman) # for loading packages
-p_load(tidyverse, janitor, caret, lubridate, RColorBrewer, corrplot, factoextra, knitr)
+p_load(tidyverse, janitor, caret, lubridate, RColorBrewer, corrplot, factoextra, knitr, xkcd)
 ```
 
 # Overview
@@ -438,12 +438,11 @@ rf_imp = varImp(rf_model$finalModel) %>%        # importance scores
 imp = full_join(lm_imp, lasso_imp, by = "variable") %>%
   full_join(., rf_imp, by = "variable") %>%
   select(variable, everything()) %>%
-  mutate_at(vars(lm_imp:rf_imp), function(x){scale(x, center = F)}) %>%     # Normalize importance scores within models
-  drop_na()                                 # Drop features not used by random forest
-  
-imp$variable = factor(imp$variable, levels = imp$variable[order(imp$rf_imp, decreasing = T)])
+  mutate_at(vars(lm_imp:rf_imp), function(x){scale(x, center = F)})     # Normalize importance scores within models
 
 # Note: for some reason, can't do this step in mutate:
+imp$variable = factor(imp$variable, levels = imp$variable[order(imp$rf_imp, decreasing = T)])
+
 imp = imp %>%
   gather(model, importance, -variable)
 
