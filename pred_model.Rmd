@@ -39,16 +39,21 @@ This project was inspired by a [Kaggle competition](https://www.kaggle.com/c/pub
 
 > The team at PUBG has made official game data available for the public to explore and scavenge outside of "The Blue Circle." This competition is not an official or affiliated PUBG site - Kaggle collected data made possible through the PUBG Developer API. You are given over 65,000 games' worth of anonymized player data, split into training and testing sets, and asked to predict final placement from final in-game stats and initial player ratings.
 
-We thought that it would serve as a good final project idea for this class, since there's a lot of potential in what we could do with the data. We wanted to build upon the Kaggle competition to develop a hopefully interesting analysis.
+We thought that it would serve as a good final project idea for this class, since there's a lot of potential in what we could do with the data. We want to build upon the Kaggle competition goals to develop interesting insights about PUBG matches, using some of the methods we have covered in this class as well as other classes.
 
 ## Initial Questions
 
-The main goal of this project is to predict a solo player's finish placement based on their in-game actions. Specifically, the three subquestions of interest are:
+The main goal of this project is to predict a solo player's finish placement based on their in-game actions. Specifically, the three subquestions of interest we began with are:
 
-1. **Clustering**: Which playing styles are most successful?
+1. **Clustering**: Which playing styles are most successful? 
+
 2. **Model Prediction Accuracy**: How well can we predict a player's finish placement?
+
 3. **Feature Ranking**: What player actions or statistics are most predictive of their finish placement?
 
+For question #1, we unfortunately found that the data we have didn't lend itself well to clustering playing styles. For example, data on where a player chooses to land on the map would be indicative of how aggressive a player is at the beginning of the match -- landing in a city with plenty of looting items, where you are likely to encounter many other players, versus landing in a remote area, where you are likely not going to. Data on when a player kills another player would also have been insightful -- a consistently aggressive winner would likely have kills throughout the game, while a more passive winner would only kill towards the end of the game, when it is necessary to do so. 
+
+Due to the limitations of the data with regard to clustering, we instead did more exploratory analysis with dimension reduction (principal components analysis) to help us better understand the features and improve our answers to question #2 and #3. We focused our analysis on questions #2 and #3. 
 
 # Data
 
