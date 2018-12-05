@@ -127,7 +127,7 @@ prop_data = solo_dat %>%
          remove_game = prop > 1) 
 
 print("Proportion of players we have data for (out of max_place)")
-summary(prop_data$prop)
+summary(prop_data$prop) 
 
 # Remove games with proportion greater than 100%
 remove_match_ids = prop_data %>%
@@ -223,11 +223,11 @@ corrplot(corr_matrix, method = "color", type = "full", title = "Correlation Plot
 
 Clearly, many features are highly correlated with each other. In particular, `kills`, `kill_place`, `kill_streaks`, and `longest_kill` are, as expected, highly correlated. Features that are sparser such as `road_kills`, `swim_distance` exhibit little correlation with other features. Looking at the individual features' correlation with our outcome variable `win_place_perc`, we see that `boosts`, `kill_place`, and `walk_distance` are among the most predictive features (without adjusting for other features).
 
-Because of the high correlation between features, we determined that it was important to account for that in our prediction methods. One such method we used was elastic net regression, which incorporates L2 regularization to deal with problems from highly correlated features. 
+Because of the high correlation between features, we determined that it was important to account for that in our prediction methods. One such method we used was elastic net regression, which incorporates L2 regularization to deal with problems from highly correlated features. Elastic net regression also uses L1 regularization which shrinks coefficients to 0 and performs feature selection, which is of interest to us for feature ranking.
 
 # Dimension reduction and clustering
 
-To look at the features that exhibit the largest variability within the covariates, we can use principal components analysis (PCA). 
+Another way we could investigate feature ranking is if we hypothesize that features that exhibit the most variability also best explain our outcome variable. Principal components analysis (PCA) is a popular dimension reduction method that accomplishes this task. 
 
 ## Principal Components Analysis
 
@@ -255,7 +255,7 @@ data.frame(cumvar = cumsum(pc$sdev^2/sum(pc$sdev^2))) %>%
   theme_bw()
 
 # Plot features in terms of the first two principal components
-# Positively correlated features point in the same direction, negative correlated features point to opposite direction
+# Positively correlated features point in the same direction, negatively correlated features point to opposite direction
 fviz_pca_var(pc,
              col.var = "contrib", # Color by contributions to the PC
              gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
@@ -263,13 +263,17 @@ fviz_pca_var(pc,
              )
 ```
 
-The first principal component explains much of the variance we see in our features (35.6%), while the second to sixth principal component all explain between 5 to 10%. The first three components cover over 50% of the variation we see in our data, as seen in the second plot. In the third plot, we visualize each feature's contribution to the first two principal components and their correlations.
+The first principal component explains about a third of the variability we see in our features (33.6%), while the second to sixth principal component all explain between 5 to 10%. The first three components cover over 50% of the variation we see in our data. 
 
-1. **PC 1**: The first principal component comprises of features related to damage and kills, primarily the features `kills`, `kill_place`, `damage_dealt`. To a lesser extent, features like `kill_steaks`, `longest_kill`, `headshot_kills`, `boosts`, and `heals` also exhibit contribution primarily to the first principal component. 
+We also visualize each feature's contribution to the first two principal components and their correlations.
 
-2. **PC 2**: The second principal component is characterized by details related to the match setting, i.e. `match_duration` and `ride_distance`(which we noted earlier was correlated with match duration).
+1. **PC 1**: The first principal component comprises of features related to player's damage and kills, primarily the features `kills`, `kill_place`, and `damage_dealt`. To a lesser extent, features like `kill_steaks`, `longest_kill`, `headshot_kills`, `boosts`, and `heals` also exhibit contribution primarily to the first principal component. 
 
-3. **PC 3**: We can examine the table of contributions to each principal component to deduce which features contribute the most to the third principal component. The third principal component explains variation in features not well-represented in the first two components, such as `road_kills` and `swim_distance`.
+2. **PC 2**: The second principal component is characterized by details related to the match setting, i.e. `max_place` and `n_groups`.
+
+3. **PC 3**: We can examine the table of contributions to each principal component to deduce which features contribute the most to the third principal component. The third principal component explains variation in features not well-represented in the first two components, such as `match_duration` and `ride_distance`.
+
+From PCA, we can conclude that there are two primary dimensions along which our observations vary in terms of their features. The first dimension relates to player actions, specifically how much damage you dealt to other players. The second dimension relates to match characteristics representing the total number of players. From a player perspective, we are much more interested in the first principal component, since how you play is something within your control, while the number of opponents you are facing is not. 
 
 ```{r pca_points}
 # Plot points on principal components 1 and 2 
@@ -298,17 +302,18 @@ data.frame(PC2 = pc$x[,2], PC3 = pc$x[,3]) %>%
   theme_bw()
 ```
 
-Our outcome feature `win_place_perc` is pretty well explained by the first two principal components, as lower PC1 and high PC2 values correspond to a higher win place percent. Similarly, we also see correlation between win place percentage and the second and third principal components. This suggests that the largest variations in the features can explain the variation in the outcome as well. We will explore this further in the feature ranking section.
 
-## K-Means Clustering
+We want to investigate whether the top principal components are predictive of the finish percentile. In the plot above, we plot observations by the top 3 principal components and colored the points by the finish percentile. Principal component 1 exhibits a strong correlation with the finish percentile, with higher values corresponding to a higher win place percentage. This is a promising result, since principal component 1 consists of player actions and that is what we are most interested in. In other words, as hypothesized, the largest variability we see in our features also appears to be predictive of our outcome variable.
 
-Since the probability of winning increases as the number of players decrease, it is to the players' advantage to eliminate players rather than just damage players. Thus, players tend to take two approaches to the game:
+## Clustering of Winners
 
-1. **Aggressive Strategy**: players (usually of higher skill) drop in a populated location and attempt to take control of the location. This is a high-risk and high-reward strategy as players are more likely to die due to an increased number of encounters but are rewarded with superior weapons and boosts.
+Since the probability of winning increases as the number of players decrease, it is to the players' advantage to eliminate players. Thus, we can hypothesize that players may take two approaches to the game:
 
-2. **Passive Strategy**: rather than eliminating other players yourself, the passive strategy relies on surviving until other players have been eliminated. This typically involves hiding to minimize encounters until only a few players remain, then selectively taking fights until the player is the only one remaining.
+1. **Aggressive Strategy**: Players drop in a populated location and attempt to take control of the location. This is a high-risk and high-reward strategy as players are more likely to die early in the game due to an increased number of encounters but are rewarded with superior weapons and boosts.
 
-To explore whether we could identify strategies to win, we looked at the distribution of the percentage of total players killed by game winners. 
+2. **Passive Strategy**: Rather than eliminating other players yourself, the passive strategy relies on surviving until other players have been eliminated. This typically involves hiding to minimize encounters until only a few players remain, then selectively taking fights until the player is the only one remaining.
+
+First, we attempted to identify these strategies in our data by looking at the distribution of the percentage of total players killed by game winners. 
 
 ```{r k_means_exp}
 train_solo %>% filter(win_place_perc == 1) %>%
@@ -321,15 +326,36 @@ train_solo %>% filter(win_place_perc == 1) %>%
   theme_bw()
 ```
 
-If winners used a variety of aggression strategies, we would expect to see a multi-modal distribution in the proportion of players killed for match winners. However, a histogram of the data reveals that for the most part, winners tend to eliminate on average `r round(mean(train_solo %>% filter(win_place_perc == 1) %>% mutate(prop_killed = kills/max_place) %>% .$prop_killed),2)` of players in the match. It is worth noting that there is a decent fraction of winners with 0 to 0.1 proportion of players killed (where the winner likely eliminated only the second place player), but the small mass indicates that the passive approach tends to be less successful. 
+If there was a clear distinction between the two strategies, we could expect to see a multi-modal distribution in the proportion of players killed for match winners. However, a histogram of the data reveals that for the most part, winners tend to eliminate on average `r round(mean(train_solo %>% filter(win_place_perc == 1) %>% mutate(prop_killed = kills/max_place) %>% .$prop_killed),2)` of players in the match. It is worth noting that there is a slight bump for winners with 0 to 0.1 proportion of players killed (where the winner may have only eliminated the second place player). However, it is not a sufficiently high bump to characterize the distribution as bimodal. 
 
-Additionally, after further consideration of the data, we realized that does not seem well suited to address the question of strategies for success for the following reasons:
+```{r}
+X = train_solo %>%
+  filter(win_place_perc == 1) %>%
+  select(-win_place_perc, -id, -match_id) %>%
+  as.matrix()
 
-1. We characterize player strategy by the proportion of total players killed. However, players who are more skilled (i.e. more accurate in their shots, better at positioning, etc.) tend to favor an aggressive strategy while players less confidence in their mechanical skill may favor a passive strategy. Thus, rather than measuring the effectiveness of a strategy, we would be looking at the mechanical skill of a player.
+pc = prcomp(X, center = T, scale = T)
 
-2. Aggressive players would likely be killing throughout the whole game while passive players would have most of their kills concentrated in the end. Thus, longitudinal data about when a player killed another player or data on where a particular player dropped on the map may be more suited to understand the effectiveness of player strategies. 
+fviz_pca_var(pc,
+             col.var = "contrib", # Color by contributions to the PC
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE         # Avoid text overlapping
+             )
 
-Thus, we did not use k-means clustering to explore whether there were clusters of individuals who used similar strategies as k-means clustering always results in $k$ clusters, whether those clusters truly exist or not. 
+data.frame(PC1 = pc$x[,1], PC2 = pc$x[,2]) %>%
+  ggplot(aes(PC1, PC2)) +
+  geom_point(alpha = 0.5) +
+  labs(title = "Winners by PC1 and PC2") +
+  theme_bw()
+```
+
+We also use PCA on the winners to see if there are clear clusters and were unable to find any along the first two principal components. We might expect to see clusters along the first principal component based on our hypothesis of aggressive versus passive playing styles. However, upon further consideration, even if these playing styles existed, we may not have the necessary data that would've helped us cluster them. Some examples include:
+
+1. Drop location: An important indicator of aggressiveness, as described earlier, is where a player chooses to drop on the map. We did not have this data and are therefore missing an important signal for playing style. 
+
+2. Time of kill: Aggressive players would likely be killing throughout the whole game while passive players would have most of their kills concentrated in the end. Or there may be a hybrid strategy where players are aggressive in the beginning to loot more items, then keep a low profile until the very end. Thus, longitudinal data for when a player killed other players would have helped separate different strategies.
+
+Since we only have data on the total number of kills (relative and absolute), that may not be a sufficient signal to separate playing strategies. On the other hand, it may also be possible that clusters for playing strategies don't exist at all. Perhaps all winners pursue what we would consider an aggressive stratey, in which case we would not see separate clusters either.
 
 # Prediction Models & Feature Ranking
 
