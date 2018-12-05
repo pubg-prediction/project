@@ -177,7 +177,7 @@ In the training set, we have `r n_distinct(train_solo$id)` players and `r n_dist
 
 ## Distribution of Features by Finish Percentile
 
-We first explored the distribution of each feature by the final finish percentile. Players were first grouped into the 0-19th, 20th-39th, 40th-59th, 60th-79th, or 80th-100th percentile finish. Then we plotted the density of features by percentile groups. Note that due to extreme outliers, we excluded the highest 1% of many of the features for clearer visualizations.
+We first explored the distribution of each feature by the final finish percentile. Players were grouped into the 0-19th, 20th-39th, 40th-59th, 60th-79th, or 80th-100th percentile finish. Then we plotted the density of features by percentile groups. This gives some indication of how predictive our features will be. Note that due to extreme outliers, we excluded the highest 1% of many of the features for clearer visualizations.
 
 ```{r plot_dist_of_features_by_percentile, fig.width = 10, fig.height = 12}
 filter_vars = c("boosts", "damage_dealt", "headshot_kills", "heals", "kills", "longest_kill", "ride_distance", "swim_distance", "walk_distance", "weapons_acquired")
@@ -209,22 +209,25 @@ Some interesting relationships between the features and the finish percentile:
 
 - **Distance Traveled** (`walk_distance`, `swim_distance`, and `ride_distance`): Players who finish higher tend to have walked farther. This is likely because they simply survive longer and are force to travel to stay in the safe zone, whereas players who die early don't get a chance to travel very far. Both swimming and riding in vehicles are rare occurrences, though it appears that players who finish higher also tend to do more of both.
 
+To summarize, many features are correlated with the finish percentile. However, we also want to take a look at the correlation between features, as that could present a problem when fitting models and determining feature rankings. We can look into this with a correlation plot.
 
 ## Correlation Plot
-
-Statistics related to `kills` seem to be well correlated with finish percentile. Additionally, duration of game does not seem to be strongly correlated with many of the in-game features with the exception of `walk_distance`. 
 
 ```{r corr_plot, fig.width = 10, fig.height = 12}
 corr_matrix = train_solo %>% 
   select(-id, -match_id) %>% 
   cor()
 
-corrplot(corr_matrix, method = "color", type = "upper", title = "Correlation Plot of Features")
+corrplot(corr_matrix, method = "color", type = "full", title = "Correlation Plot of Features")
 ```
+
+Clearly, many features are highly correlated with each other. In particular, `kills`, `kill_place`, `kill_streaks`, and `longest_kill` are, as expected, highly correlated. Features that are sparser such as `road_kills`, `swim_distance` exhibit little correlation with other features. Looking at the individual features' correlation with our outcome variable `win_place_perc`, we see that `boosts`, `kill_place`, and `walk_distance` are among the most predictive features (without adjusting for other features).
+
+Because of the high correlation between features, we determined that it was important to account for that in our prediction methods. One such method we used was elastic net regression, which incorporates L2 regularization to deal with problems from highly correlated features. 
 
 # Dimension reduction and clustering
 
-To look at the features that contribute to the largest variability within the covariates, we can use principal components analysis (PCA). 
+To look at the features that exhibit the largest variability within the covariates, we can use principal components analysis (PCA). 
 
 ## Principal Components Analysis
 
