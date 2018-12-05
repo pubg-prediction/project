@@ -307,13 +307,17 @@ We want to investigate whether the top principal components are predictive of th
 
 ## Clustering of Winners
 
-Since the probability of winning increases as the number of players decrease, it is to the players' advantage to eliminate players. Thus, we can hypothesize that players may take two approaches to the game:
+In this section, we attempt to answer our first question:
+
+1. Clustering: Which playing styles are most successful? 
+
+Since the probability of winning increases as the number of players decrease, it is to the players' advantage to eliminate players. Thus, we can hypothesize that successful players may take two approaches to the game:
 
 1. **Aggressive Strategy**: Players drop in a populated location and attempt to take control of the location. This is a high-risk and high-reward strategy as players are more likely to die early in the game due to an increased number of encounters but are rewarded with superior weapons and boosts.
 
 2. **Passive Strategy**: Rather than eliminating other players yourself, the passive strategy relies on surviving until other players have been eliminated. This typically involves hiding to minimize encounters until only a few players remain, then selectively taking fights until the player is the only one remaining.
 
-First, we attempted to identify these strategies in our data by looking at the distribution of the percentage of total players killed by game winners. 
+First, we attempted to identify these strategies in our data by looking at the distribution of the percentage of total players killed by winners. 
 
 ```{r k_means_exp}
 train_solo %>% filter(win_place_perc == 1) %>%
@@ -326,7 +330,7 @@ train_solo %>% filter(win_place_perc == 1) %>%
   theme_bw()
 ```
 
-If there was a clear distinction between the two strategies, we could expect to see a multi-modal distribution in the proportion of players killed for match winners. However, a histogram of the data reveals that for the most part, winners tend to eliminate on average `r round(mean(train_solo %>% filter(win_place_perc == 1) %>% mutate(prop_killed = kills/max_place) %>% .$prop_killed),2)` of players in the match. It is worth noting that there is a slight bump for winners with 0 to 0.1 proportion of players killed (where the winner may have only eliminated the second place player). However, it is not a sufficiently high bump to characterize the distribution as bimodal. 
+Most winners kill a substantial proportion of their opponents -- on average, they eliminate `r round(mean(train_solo %>% filter(win_place_perc == 1) %>% mutate(prop_killed = kills/max_place) %>% .$prop_killed),2)` of players in the match. However, if there was a clear distinction between the two strategies in terms of proportion of players killed, we would expect to see a multi-modal distribution in the proportion of players killed for match winners. It is worth noting that there is a slight bump for winners with 0 to 0.1 proportion of players killed (where the winner may have only eliminated the second place player). However, it is not a sufficiently high bump to characterize the distribution as bimodal. 
 
 ```{r}
 X = train_solo %>%
@@ -361,16 +365,16 @@ Since we only have data on the total number of kills (relative and absolute), th
 
 In this section, we aim to answer our remaining two questions:
 
-1. **Model Prediction Accuracy**: How well can we predict a player's finish placement?
-2. **Feature Ranking**: What player actions or statistics are most predictive of their finish placement?
+1. Model Prediction: How well can we predict a player's finish placement? How well can we classify winners?
+2. Feature Ranking: What player actions or statistics are most predictive of their finish placement?
 
-To answer these questions, we will fit the following models, test our model on an independent test set, and examine feature importance scores:
+To answer these questions, we will fit the following models, test our model on an independent set, and examine feature importance scores:
 
-1. Linear regression (to constrain outcome, need to use a GLM with beta or binomial distrib)
+1. Linear regression 
 2. Elastic net regression
 3. Random forest
 
-In training our models, unless stated otherwise, we will include all features except for the match ID and player ID, since neither feature is going to generalize for predicting new games, which is what we are interested in. 
+Note: In training our models, unless stated otherwise, we will include all features except for the match ID and player ID, since neither feature is going to generalize for predicting new games, which is what we are interested in. 
 
 ## Linear Regression
 
@@ -431,7 +435,7 @@ predictions_solo %>%
 
 ## Random Forest
 
-To account for interactions between features, we can use a random forest model. Ensemble methods like random forest are also known to generally perform better than regression models. Due to computational costs, however, we make the following choices:
+To account for interactions between features, we can use a random forest model. Ensemble methods like random forest are known to generally perform better than regression models. Due to computational costs, however, we make the following choices:
 
 1. Train the random forest model on 10,000 observations (as opposed to 60,000 observations).
 2. Use 100 trees in the random forest.
@@ -464,7 +468,7 @@ predictions_solo %>%
   theme_bw()
 ```
 
-Note that the spread of points narrows for players that place higher (actual win place percentage approaches 0). This indicates that we are able to predict more accurately for players that place higher. 
+Note that the spread of points narrows for players that place higher (actual win place percentage approaches 0). This indicates that we are able to predict the finish percentile more accurately for players that place higher. 
 
 ## Feature Ranking
 
@@ -497,7 +501,7 @@ imp = full_join(lm_imp, lasso_imp, by = "variable") %>%
   mutate_at(vars(lm_imp:rf_imp), function(x){scale(x, center = F)})     # Normalize importance scores within models
 
 # Note: for some reason, can't do this step in mutate:
-imp$variable = factor(imp$variable, levels = imp$variable[order(imp$rf_imp, decreasing = T)])
+imp$variable = factor(imp$variable, levels = imp$variable[order(imp$lasso_imp, decreasing = T)])
 
 imp = imp %>%
   gather(model, importance, -variable)
@@ -516,16 +520,13 @@ imp %>%
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-While there is not much agreement in the features that each model regards to be important, this is likely due to highly correlated features; for example, if we look at the features `kill_place` and `kill_streaks`, the former is rated as highly important by the linear regression and random forest, while the latter is rated as highly important by elastic net regression. However, the two features are known to be highly correlated with each other.
+Unexpectedly, there is not much agreement in the features that each model regards to be important. One explanation for this is the presence of highly correlated features in our data; for example, if we look at the features `kill_place` and `kill_streaks`, the former is rated as highly important by the linear regression and random forest, while the latter is rated as highly important by elastic net regression. However, the two features are known to be highly correlated with each other. While random forest performs best in prediction, the caveat with its importance score metric is that if multiple features are all predictive of the outcome but are highly correlated with the outcome, the importance score of each feature is going to be suppressed.
 
-Let's take a look at the importance score for random forest. The top features are ... ** To fill in **
+Since elastic net regression accounts for correlation between features, we will primarily use its variable importance values to summarize our findings for ranking the importance of player characteristics and actions:
 
-To summarize:
+1. The most important predictor is the number of kills a player makes. Elastic net regression chooses `kill_streaks` as the most predictive among the different features related to kills. What this suggests is that while some players may succeed with less confrontational playing strategies, you need to kill other players or you will be eliminated.
 
-1. The most important predictor is the number of kills a player makes. The strongest signal lies in the relative number of kills, as indicated by `kill_place`, rather than the absolute number of `kills` or other aggressiveness indicators like `weapons_acquired`, `kill_streaks`, and `headshot_kills`. What this suggests is that while a few players may succeed with less confrontational playing strategies, the vast majority of top players pursue highly aggressive tactics. In the context of battle royale games, this means that you need to kill other players or you will be eliminated.
-
-2. Among items used, `boosts` and `weapons_acquired` are the strongest predictors of outcome. This is interesting because one would expect that among items, weapons would be the dominant predictor. However, the acquisition of weapons may plateau over time once you have strong weapons. On the other hand, `boosts` enable increased health regeneration over time and have a small movement speed bonus when the amount of boosts consumed is beyond a particular threshold (and decays over time). Players tend to save boosts as an additional advantage in the later stages of the game when most players have powerful weapons. Consequently, the number of boosts consumed may be a stronger stronger signal than `heals`. 
-
+2. Among items used, `weapons_acquired` and `boosts` are the strongest predictors of outcome. This is interesting because one would expect that among the features related to item acquisition and usage, weapons would be the dominant predictor. However, the acquisition of weapons may plateau over time once you have strong weapons. On the other hand, `boosts` enable increased health regeneration over time and have a small movement speed bonus when the amount of boosts consumed is beyond a particular threshold. Players tend to save boosts as an additional advantage in the later stages of the game when most players have powerful weapons. Consequently, the number of boosts consumed is also a strong indicator of a successful player.
 
 ## Comparison of Models
 
