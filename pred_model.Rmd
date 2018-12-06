@@ -672,11 +672,11 @@ data.frame(cutoff = rep(cutoff, 2),
   ggplot(aes(x = 1-spec, y = sens, color = set)) + 
   geom_point() + 
   geom_line() + 
-  theme_bw()  +
   labs(title = "ROC Curve",
        x = "False Positive Rate (1 - Specificity)",
        y = "Sensitivity",
-       color = "Dataset")
+       color = "Dataset") +
+  theme_bw()
 
 pred_test_metrics = pred_test %>%
   summarize(rf_test_mae = mean(rf_test_ae),
