@@ -333,8 +333,10 @@ train_solo %>% filter(win_place_perc == 1) %>%
 Most winners kill a substantial proportion of their opponents -- on average, they eliminate `r round(mean(train_solo %>% filter(win_place_perc == 1) %>% mutate(prop_killed = kills/max_place) %>% .$prop_killed),2)` of players in the match. However, if there was a clear distinction between the two strategies in terms of proportion of players killed, we would expect to see a multi-modal distribution in the proportion of players killed for match winners. It is worth noting that there is a slight bump for winners with 0 to 0.1 proportion of players killed (where the winner may have only eliminated the second place player). However, it is not a sufficiently high bump to characterize the distribution as bimodal. 
 
 ```{r}
-X = train_solo %>%
-  filter(win_place_perc == 1) %>%
+winners_solo = train_solo %>%
+  filter(win_place_perc == 1)
+
+X = winners_solo %>%
   select(-win_place_perc, -id, -match_id) %>%
   as.matrix()
 
@@ -347,13 +349,21 @@ fviz_pca_var(pc,
              )
 
 data.frame(PC1 = pc$x[,1], PC2 = pc$x[,2]) %>%
-  ggplot(aes(PC1, PC2)) +
+  ggplot(aes(PC1, PC2, color = (winners_solo$kills==0))) +
   geom_point(alpha = 0.5) +
-  labs(title = "Winners by PC1 and PC2") +
+  labs(title = "Winners by PC1 and PC2, colored by number of kills",
+       color = "Number of kills = 0") +
+  theme_bw()
+
+data.frame(PC1 = pc$x[,1], PC2 = pc$x[,2]) %>%
+  ggplot(aes(PC1, PC2, color = (winners_solo$n_groups))) +
+  geom_point(alpha = 0.5) +
+  labs(title = "Winners by PC1 and PC2, colored by number of players",
+       color = "Number of players in the match") +
   theme_bw()
 ```
 
-We also use PCA on the winners to see if there are clear clusters and were unable to find any along the first two principal components. We might expect to see clusters along the first principal component based on our hypothesis of aggressive versus passive playing styles. However, upon further consideration, even if these playing styles existed, we may not have the necessary data that would've helped us cluster them. Some examples include:
+We also use PCA on the winners to see if there are clear clusters. In fact, we do see two clear clusters. However, we can see that the smaller cluster consists of winners of matches with very few players and those winners did not commit any kills, which means that all the other players were eliminated by some other factor (whether by forfeiting, not staying with the safe zone, or being killed by other players). Therefore, these clusters are not reflective of the different playing styles we hypothesized about. Upon further consideration, even if the playing styles we described accurately reflect reality, we may not have the necessary data that would've helped us cluster them. Some examples include:
 
 1. Drop location: An important indicator of aggressiveness, as described earlier, is where a player chooses to drop on the map. We did not have this data and are therefore missing an important signal for playing style. 
 
@@ -468,7 +478,7 @@ predictions_solo %>%
   theme_bw()
 ```
 
-Note that the spread of points narrows for players that place higher (actual win place percentage approaches 0). This indicates that we are able to predict the finish percentile more accurately for players that place higher. 
+Note that the spread of points narrows for players that place lower (actual win place percentage approaches 0). This indicates that we are able to predict the finish percentile more accurately for players that place higher.
 
 ## Feature Ranking
 
@@ -683,10 +693,6 @@ As casual gamers and biostatistics students, we are interested in features and s
 **Best performing model: random forest**
 
 To predict finish placement percentile, we used linear regression, elastic net regression, and random forest. Using mean absolute error (MAE), our self-defined accuracy metric (SDAM) quantifying the proportion of predictions that fall within x% of the true win place percentage, and the AUC for classification of winners, we found that the random forest model performed best on the validation set. On an independent test set, the predicted finish percentile was on average `r round(pred_test_metrics$rf_test_mae, 3)` from the true finish percentile. We also achieved a sensitivity of 0.88 and specificity 0.86, meaning that we are able to correctly classify 88% of winners correctly while correctly classifying 86% of losers.
-
-**Higher predictive accuracy for top players**
-
-We also observe that our predictions are more accurate for players with higher placements. This makes sense since there should be increasingly higher demands on skill the higher you place and therefore more signal in the data. In other words, the difference in skill between a player who places 60 vs a player who places 90 out of 100 is likely much smaller than the difference between a player who places 1 vs a player who places 30 out of 100. As a result, we can more accurately distinguish between places the higher you place. 
 
 **Most predictive player features**
 
