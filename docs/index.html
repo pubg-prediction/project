@@ -51,10 +51,58 @@ permalink: /
         <li>Model Prediction: How well can we predict a player's finish placement? How well can we classify winners?<br></li>
         <li>Feature Ranking: What player actions or statistics are most predictive of their finish placement?</li>
       </ol>
-
     </div>
   </div>
 </div>
+</section>
+
+<!-- Content Start -->
+<section id="testimonial">
+  <div class="container">
+    <div class="row">
+      <div class="section-title text-center">
+        <h2>Fun Facts About Us</h2>
+        <p>Far far away, behind the word mountains, far from the countries Vokalia and Consonantia, there live the blind texts. Separated they live in Bookmarksgrove right at the coast of the Semantics</p>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-6">
+        {% if site.data.funfacts.size > 0 %}
+        <div class="block">
+          {% for ff in site.data.funfacts %}
+          <ul class="counter-box clearfix">
+            <li>
+              <div class="block">
+                <i class="{{ ff.icon }}"></i>
+                <h4 class="counter">{{ ff.counter }}</h4>
+                <span>{{ ff.text }}</span>
+              </div>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+      </div>
+      <div class="col-md-6">
+        {% if site.data.testimonials.size > 0 %}
+        <div class="testimonial-carousel">
+          <div id="testimonial-slider" class="owl-carousel">
+            {% for tm in site.data.testimonials %}
+            <div>
+                <img src="img/cotation.png" alt="IMG">
+                <p>{{ tm.testimonial }}</p>
+                <div class="user">
+                  <img src="{{ tm.image }}" alt="Pepole">
+                  <p><span>{{ tm.name }}</span> {{ tm.title }}</p>
+                </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
 </section>
 
 <!-- Service Start -->
@@ -136,54 +184,6 @@ permalink: /
           <p>Read more about what we do and our philosophy of design. Judge for yourself The work and results we’ve achieved for other clients, and meet our highly experienced Team who just love to design.</p>
           <a class="btn btn-default btn-call-to-action" href="#" >Tell Us Your Story</a>
         </div>
-      </div>
-    </div>
-  </div>
-</section>
-<!-- Content Start -->
-<section id="testimonial">
-  <div class="container">
-    <div class="row">
-      <div class="section-title text-center">
-        <h2>Fun Facts About Us</h2>
-        <p>Far far away, behind the word mountains, far from the countries Vokalia and Consonantia, there live the blind texts. Separated they live in Bookmarksgrove right at the coast of the Semantics</p>
-      </div>
-    </div>
-    <div class="row">
-      <div class="col-md-6">
-        {% if site.data.funfacts.size > 0 %}
-        <div class="block">
-          {% for ff in site.data.funfacts %}
-          <ul class="counter-box clearfix">
-            <li>
-              <div class="block">
-                <i class="{{ ff.icon }}"></i>
-                <h4 class="counter">{{ ff.counter }}</h4>
-                <span>{{ ff.text }}</span>
-              </div>
-            </li>
-            {% endfor %}
-          </ul>
-        </div>
-        {% endif %}
-      </div>
-      <div class="col-md-6">
-        {% if site.data.testimonials.size > 0 %}
-        <div class="testimonial-carousel">
-          <div id="testimonial-slider" class="owl-carousel">
-            {% for tm in site.data.testimonials %}
-            <div>
-                <img src="img/cotation.png" alt="IMG">
-                <p>{{ tm.testimonial }}</p>
-                <div class="user">
-                  <img src="{{ tm.image }}" alt="Pepole">
-                  <p><span>{{ tm.name }}</span> {{ tm.title }}</p>
-                </div>
-            </div>
-            {% endfor %}
-          </div>
-        </div>
-        {% endif %}
       </div>
     </div>
   </div>
