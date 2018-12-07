@@ -1,8 +1,8 @@
 - counter: 720386
-  icon: ion-walk
+  icon: ion-android-walk
   text: Players
 - counter: 8034
-  icon: ion-ios-tv
+  icon: ion-laptop
   text: Games Played
 - counter: 17
   icon: ion-podium
