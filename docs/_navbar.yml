@@ -1,9 +1,0 @@
-title: "Advanced Data Science"
-left:
-  - text: "Home"
-    href: index.html
-  - text: "Syllabus"
-    href: pred_model.html
-right:
-  - icon: fa-github fa-lg
-    href: https://github.com/jhu-advdatasci/2018

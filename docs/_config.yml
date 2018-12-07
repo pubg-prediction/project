@@ -1,3 +1,6 @@
 theme: jekyll-theme-slate
 title: Predicting Player Performance in PUBG
-tagline: Final project for 140.711 Advanced Data Science (Fall 2018)
+description: Final project for 140.711 Advanced Data Science (Fall 2018)
+
+
+show_downloads: true
