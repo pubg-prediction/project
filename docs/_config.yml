@@ -18,7 +18,6 @@ subtitle: "Final project for 140.711 Advanced Data Science (Fall 2018)"
 url: "http://pubg-prediction.github.io"
 baseurl: "/project"
 cover: "/img/slider-bg.jpg"
-logo: "/img/logo.png"
 
 # Build settings
 markdown: kramdown
