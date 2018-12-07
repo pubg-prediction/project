@@ -232,8 +232,8 @@ font header .navbar-default .navbar-nav li a:hover {
 --*/
 #feature {
   background: url("../img/featue-bg.jpg");
-  background-position: 50% 94px;
-  width: 80%;
+  background-position: 40% 94px;
+  width: 100%;
   display: block;
   position: relative;
   overflow: visible;
