@@ -5,7 +5,7 @@
   icon: ion-ios-tv
   text: Games Played
 - counter: 17
-  icon: ion-podium-outline
+  icon: ion-podium
   text: Features
 - counter: 100
   icon: ion-ios-pie-outline
