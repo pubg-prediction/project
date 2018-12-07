@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html class="no-js">
+  <head>
+
+    <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>Home</title>
+<meta name="description" content="">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+
+<!-- CSS -->
+<link rel="stylesheet" href="/project/css/owl.carousel.css" />
+<link rel="stylesheet" href="/project/css/bootstrap.min.css" />
+<link rel="stylesheet" href="/project/css/font-awesome.min.css" />
+<link rel="stylesheet" href="/project/css/airspace.css" />
+<link rel="stylesheet" href="/project/css/style.css" />
+<link rel="stylesheet" href="/project/css/ionicons.min.css" />
+<link rel="stylesheet" href="/project/css/animate.css" />
+<link rel="stylesheet" href="/project/css/responsive.css" />
+<link rel="stylesheet" href="/project/css/syntax.css" />
+
+<!-- Js -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/vendor/jquery-1.10.2.min.js"><\/script>')</script>
+<script src="/project/js/bootstrap.min.js"></script>
+<script src="/project/js/owl.carousel.min.js"></script>
+<script src="/project/js/plugins.js"></script>
+<script src="/project/js/min/waypoints.min.js"></script>
+<script src="/project/js/jquery.counterup.js"></script>
+
+
+<script src="/project/js/main.js"></script>
+
+<!--
+/*
+ * Airspace
+ * Ported to Jekyll by Andrew Lee
+ * https://github.com/ndrewtl/airspace-jekyll
+ * Designed and Developed by ThemeFisher
+ * https://themefisher.com/
+ *
+ */
+-->
+
+
+  </head>
+  <body>
+
+
+    <!-- Header Start -->
+<header>
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      <!-- header Nav Start -->
+      <nav class="navbar navbar-default">
+        <div class="container-fluid">
+          <!-- Brand and toggle get grouped for better mobile display -->
+          <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="https://github.com/pubg-prediction/project">
+              <img src="/project/img/logo.png" alt="Logo" style="width:174px;height:50px;">
+            </a>
+          </div>
+            <!-- Collect the nav links, forms, and other content for toggling -->
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+              <ul class="nav navbar-nav navbar-right">
+                <li><a href="/project/">Overview</a></li>
+                <li><a href="/project/work">Work</a></li>
+                <li><a href="/project/blog">Prediction Models</a></li>
+                <li><a href="#">Service</a></li>
+                <li><a href="/project/contact">About Us</a></li>
+              </ul>
+            </div><!-- /.navbar-collapse -->
+          </div><!-- /.container-fluid -->
+        </nav>
+      </div>
+    </div>
+  </div>
+</header><!-- header close -->
+
+
+
+    <!-- Slider Start -->
+<section id="slider">
+  <div class="container">
+    <div class="row">
+      <div class="col-md-10 col-md-offset-2">
+        <div class="block">
+          <h1 class="animated fadeInUp"> PREDICTING PLAYERS' PERFORMANCE IN &#38; <br> PLAYERUNKNOWNS' BATTLEGROUNDS</h1>
+          <p class="animated fadeInUp">Final project for JHU 140.711 Advanced Data Science (Fall 2018)</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- Wrapper Start -->
+<section id="intro">
+  <div class="container">
+    <div class="row">
+      <div class="col-md-7 col-sm-12">
+        <div class="block">
+          <div class="section-title">
+            <h2>About PlayerUnknowns' Battlegrounds (PUBG)</h2>
+            <p>Around one hundred players jump out of a plane with a parachute, the clothes on them, and no other items. Players must loot for weapons and boosts to survive. Who will be the last player standing?</p>
+          </div>
+          <p>Battle royale games have surged in popularity in recent years. The premise of such games is as follows: players are dropped onto a fictional island and fight to be the last person standing. As they roam around the island, they loot for weapons and items crucial for their survival. Players can choose to join a game as a solo player or with a group of friends (4 players maximum). When playing solo, players are immediately eliminated when they are killed. Players not only have to worry about getting killed by other players, but they also have to stay within the shrinking "safe zone," which effectively forces players into contact with each other. Outside of the "safe zone," players take damage to their health at increasing rates. </p>
+          <a href="#" class="btn btn-view-works">View Works</a>
+        </div>
+      </div><!-- .col-md-7 close -->
+      <div class="col-md-5 col-sm-12">
+        <div class="block">
+          <img src="img/pubg_map.jpg" alt="PUBG_MAP" style="width:500px" border = "10">
+        </div>
+      </div><!-- .col-md-5 close -->
+    </div>
+  </div>
+</section>
+
+<section id="feature">
+<div class="container">
+  <div class="row">
+    <div class="col-md-6 col-md-offset-6">
+      <h2>WHAT DETERMINES A PLAYER'S FINAL MATCH PLACEMENT?</h2>
+      <p>The main goal of this project is to predict a solo player's finish placement based on their in-game actions. Specifically, we wanted to answer: </p>
+      <ol>
+        <li>Clustering: Which playing styles are most successful? <br></li>
+        <li>Model Prediction: How well can we predict a player's finish placement? How well can we classify winners?<br></li>
+        <li>Feature Ranking: What player actions or statistics are most predictive of their finish placement?</li>
+      </ol>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- Data Description Start -->
+<section id="testimonial">
+  <div class="container">
+    <div class="row">
+      <div class="section-title">
+        <h2>The Data</h2>
+        <p>This project was inspired by a <a href = "https://www.kaggle.com/c/pubg-finish-placement-prediction"> Kaggle competition </a> to predict player finish placement for various PUBG game data and was provided by the team at PUBG. Thus, the data can be downloaded via the Kaggle API. In this project, we opted to focus only on match data for solo-players. Additionally, due to computational costs, we only looked at a small subset of the full dataset provided by Kaggle. We first explored the distribution of each feature by the final finish percentile. Players were grouped into the 0-19th, 20th-39th, 40th-59th, 60th-79th, or 80th-100th percentile finish. Then we plotted the density of features by percentile groups. This gives some indication of how predictive our features will be. Note that due to extreme outliers, we excluded the highest 1% of many of the features for clearer visualizations. The data set consists of: </p>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-6">
+        
+        <div class="block">
+          
+          <ul class="counter-box clearfix">
+            <li>
+              <div class="block">
+                <i class="ion-android-walk"></i>
+                <h4 class="counter">720386</h4>
+                <span>Players</span>
+              </div>
+            </li>
+            
+          <ul class="counter-box clearfix">
+            <li>
+              <div class="block">
+                <i class="ion-laptop"></i>
+                <h4 class="counter">8034</h4>
+                <span>Games Played</span>
+              </div>
+            </li>
+            
+          <ul class="counter-box clearfix">
+            <li>
+              <div class="block">
+                <i class="ion-podium"></i>
+                <h4 class="counter">17</h4>
+                <span>Features</span>
+              </div>
+            </li>
+            
+          <ul class="counter-box clearfix">
+            <li>
+              <div class="block">
+                <i class="ion-ios-pie-outline"></i>
+                <h4 class="counter">100</h4>
+                <span>Percent of Players with Data Per Match</span>
+              </div>
+            </li>
+            
+          </ul>
+        </div>
+        
+      </div>
+      <div class="col-md-6">
+        
+        <div class="testimonial-carousel">
+          <div id="testimonial-slider" class="owl-carousel">
+            
+            <div>
+                <p></p>
+                <div class="feature">
+                  <img src="img/data_plot_1.png" alt="graphs">
+                </div>
+            </div>
+            
+            <div>
+                <p></p>
+                <div class="feature">
+                  <img src="img/data_plot_2.png" alt="graphs">
+                </div>
+            </div>
+            
+            <div>
+                <p></p>
+                <div class="feature">
+                  <img src="img/data_plot_3.png" alt="graphs">
+                </div>
+            </div>
+            
+            <div>
+                <p></p>
+                <div class="feature">
+                  <img src="img/data_plot_4.png" alt="graphs">
+                </div>
+            </div>
+            
+            <div>
+                <p></p>
+                <div class="feature">
+                  <img src="img/data_plot_5.png" alt="graphs">
+                </div>
+            </div>
+            
+            <div>
+                <p></p>
+                <div class="feature">
+                  <img src="img/data_plot_6.png" alt="graphs">
+                </div>
+            </div>
+            
+            <div>
+                <p></p>
+                <div class="feature">
+                  <img src="img/data_plot_7.png" alt="graphs">
+                </div>
+            </div>
+            
+            <div>
+                <p></p>
+                <div class="feature">
+                  <img src="img/data_plot_8.png" alt="graphs">
+                </div>
+            </div>
+            
+            <div>
+                <p></p>
+                <div class="feature">
+                  <img src="img/data_plot_9.png" alt="graphs">
+                </div>
+            </div>
+            
+            <div>
+                <p></p>
+                <div class="feature">
+                  <img src="img/data_plot_10.png" alt="graphs">
+                </div>
+            </div>
+            
+            <div>
+                <p></p>
+                <div class="feature">
+                  <img src="img/data_plot_11.png" alt="graphs">
+                </div>
+            </div>
+            
+            <div>
+                <p></p>
+                <div class="feature">
+                  <img src="img/data_plot_12.png" alt="graphs">
+                </div>
+            </div>
+            
+            <div>
+                <p></p>
+                <div class="feature">
+                  <img src="img/data_plot_13.png" alt="graphs">
+                </div>
+            </div>
+            
+          </div>
+        </div>
+        
+      </div>
+    </div>
+    <div class="row">
+      <div class="block">
+        <p> <br> From our exploratory data analysis, we noted the following relationships between the features and the finish percentile: </p>
+        <ul style="list-style-type:disc">
+          <li> <b> Use of Items</b> (<code>boosts</code>, <code>heals</code>, and <code>weapons_acquired</code>): Players who finish higher tend to have used more boosts and healing items, and acquired more weapons. This is expected since they stayed in the game for a longer period and have more time to collect and use items.
+          <li> <b> Kills & Damage</b> (<code>damage_dealt</code>, <code>kill_place</code>, and <code>kills</code>): Players who finish higher tend to have more kills. They also tend to have dealt more damage. However, in the top finishing group, there is a wide variety in how much damage they inflict. This could potentially indicate strategies that differ in their level of aggressiveness during the course of the game but are similarly successful in achieving a high placement.
+          <li> <b> Distance Traveled</b> (<code>walk_distance</code>, <code> swim_distance</code>, and <code>ride_distance</code>): Players who finish higher tend to have walked farther. This is likely because they simply survive longer and are force to travel to stay in the safe zone, whereas players who die early don't get a chance to travel very far. Both swimming and riding in vehicles are rare occurrences, though it appears that players who finish higher also tend to do more of both.
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- Data Description Start -->
+<section id="data_Description">
+  <div class="container">
+    <div class="row">
+      <div class="section-title">
+        <h2>The Data</h2>
+        <p>Since this work was inspired by a <a href = "https://www.kaggle.com/c/pubg-finish-placement-prediction"> Kaggle competition </a>, the data can be downloaded via the Kaggle API. For the sake of this project, we focus on match data for solo-player modes only. The dataset consists of: </p>
+      </div>
+    </div>
+    <div class="row ">
+      <div class="col-sm-6 col-md-3">
+        <div class="service-item">
+          <i class="icon ion-coffee"></i>
+          <h4>Branding</h4>
+          <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut </p>
+        </div>
+      </div>
+      <div class="col-sm-6 col-md-3">
+        <div class="service-item">
+          <i class="ion-compass"></i>
+          <h4>Web Design</h4>
+          <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut </p>
+        </div>
+      </div>
+      <div class="col-sm-6 col-md-3">
+        <div class="service-item">
+          <i class="ion-image"></i>
+          <h4>App Design</h4>
+          <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut </p>
+        </div>
+      </div>
+      <div class="col-sm-6 col-md-3">
+        <div class="service-item">
+          <i class="ion-bug"></i>
+          <h4>Start Up</h4>
+          <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut </p>
+        </div>
+      </div>
+      <div class="col-sm-6 col-md-3">
+        <div class="service-item">
+          <i class="ion-headphone"></i>
+          <h4>Logo Design</h4>
+          <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut </p>
+        </div>
+      </div>
+      <div class="col-sm-6 col-md-3">
+        <div class="service-item">
+          <i class="ion-leaf"></i>
+          <h4>Development</h4>
+          <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut </p>
+        </div>
+      </div>
+      <div class="col-sm-6 col-md-3">
+        <div class="service-item">
+          <i class="ion-planet"></i>
+          <h4>Brand Identity</h4>
+          <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut </p>
+        </div>
+      </div>
+      <div class="col-sm-6 col-md-3">
+        <div class="service-item">
+          <i class="ion-earth"></i>
+          <h4>Brand Identity</h4>
+          <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- Call to action Start -->
+<section id="call-to-action">
+  <div class="container">
+    <div class="row">
+      <div class="col-md-12">
+        <div class="block">
+          <h2>We design delightful digital experiences.</h2>
+          <p>Read more about what we do and our philosophy of design. Judge for yourself The work and results we’ve achieved for other clients, and meet our highly experienced Team who just love to design.</p>
+          <a class="btn btn-default btn-call-to-action" href="#" >Tell Us Your Story</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+
+
+
+
+
+
+
+
+
+    <!-- footer Start -->
+<footer>
+  <div class="container">
+    <div class="row">
+      <div class="col-md-12">
+        <div class="footer-manu">
+          <ul>
+            <li><a href="#">About Us</a></li>
+            <li><a href="/project/contact">Contact us</a></li>
+            <li><a href="#">How it works</a></li>
+            <li><a href="/project/blog">Blog</a></li>
+            <li><a href="#">Terms</a></li>
+          </ul>
+        </div>
+        <p>Copyright &copy; Design &amp; Developed by <a href="http://www.themefisher.com">Themefisher</a>. All rights reserved.</p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+    </body>
+</html>
