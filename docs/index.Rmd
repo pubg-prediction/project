@@ -1,7 +1,5 @@
 ---
-layout: default
 title: Predicting Players' Performance in PUBG
-tagline: Final project for 140.711 Data Science (Fall 2018)
 ---
 
 # Project Overview
