@@ -16,7 +16,3 @@ alt="IMAGE ALT TEXT HERE" width="240" height="180" border="10" /></a> </center>
 # Predicting Players' Performance
 
 # Feature Ranking
-
-{% include data_analysis.md %}
-
-{% include overview.md %}
