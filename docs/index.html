@@ -60,9 +60,9 @@ permalink: /
 <section id="testimonial">
   <div class="container">
     <div class="row">
-      <div class="section-title text-center">
+      <div class="section-title">
         <h2>The Data</h2>
-        <p>Since this work was inspired by a <a href = "https://www.kaggle.com/c/pubg-finish-placement-prediction"> Kaggle competition </a>, the data can be downloaded via the Kaggle API. For the sake of this project, we focus on match data for solo-player modes only. The dataset consists of:</p>
+        <p>This project was inspired by a <a href = "https://www.kaggle.com/c/pubg-finish-placement-prediction"> Kaggle competition </a> to predict player finish placement for various PUBG game data and was provided by the team at PUBG. Thus, the data can be downloaded via the Kaggle API. In this project, we opted to focus only on match data for solo-players. Additionally, due to computational costs, we only looked at a small subset of the full dataset provided by Kaggle. We first explored the distribution of each feature by the final finish percentile. Players were grouped into the 0-19th, 20th-39th, 40th-59th, 60th-79th, or 80th-100th percentile finish. Then we plotted the density of features by percentile groups. This gives some indication of how predictive our features will be. Note that due to extreme outliers, we excluded the highest 1% of many of the features for clearer visualizations. The data set consists of: </p>
       </div>
     </div>
     <div class="row">
@@ -100,8 +100,19 @@ permalink: /
         {% endif %}
       </div>
     </div>
+    <div class="row">
+      <div class="block">
+        <p> <br> From our exploratory data analysis, we noted the following relationships between the features and the finish percentile: </p>
+        <ul style="list-style-type:disc">
+          <li> <b> Use of Items</b> (<code>boosts</code>, <code>heals</code>, and <code>weapons_acquired</code>): Players who finish higher tend to have used more boosts and healing items, and acquired more weapons. This is expected since they stayed in the game for a longer period and have more time to collect and use items.
+          <li> <b> Kills & Damage</b> (<code>damage_dealt</code>, <code>kill_place</code>, and <code>kills</code>): Players who finish higher tend to have more kills. They also tend to have dealt more damage. However, in the top finishing group, there is a wide variety in how much damage they inflict. This could potentially indicate strategies that differ in their level of aggressiveness during the course of the game but are similarly successful in achieving a high placement.
+          <li> <b> Distance Traveled</b> (<code>walk_distance</code>, <code> swim_distance</code>, and <code>ride_distance</code>): Players who finish higher tend to have walked farther. This is likely because they simply survive longer and are force to travel to stay in the safe zone, whereas players who die early don't get a chance to travel very far. Both swimming and riding in vehicles are rare occurrences, though it appears that players who finish higher also tend to do more of both.
+        </ul>
+      </div>
+    </div>
   </div>
 </section>
+
 
 <!-- Data Description Start -->
 <section id="data_Description">
