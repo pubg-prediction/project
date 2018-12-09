@@ -688,7 +688,7 @@ On the test set, random forest has a MAE of `r round(pred_test_metrics$rf_test_m
 
 # Narrative and Summary
 
-As casual gamers and biostatistics students, we are interested in features and strategies that characterize the top PUBG players. To answer these questions, we looked at player data for solo players in PUBG. The data consisted of 17 features describing player kills, damage, items used and acquired, and match attributes. 
+As casual gamers and biostatistics students, we are interested in features and strategies that characterize the top PUBG players. To answer these questions, we looked at player data for solo players in PUBG. The data consisted of 16 features describing player kills, damage, items used and acquired, and match attributes. 
 
 **Best performing model: random forest**
 

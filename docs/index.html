@@ -11,12 +11,13 @@ permalink: /
       <div class="col-md-10 col-md-offset-2">
         <div class="block">
           <h1 class="animated fadeInUp"> PREDICTING PLAYERS' PERFORMANCE IN &#38; <br> PLAYERUNKNOWNS' BATTLEGROUNDS</h1>
-          <p class="animated fadeInUp">Final project for JHU 140.711 Advanced Data Science (Fall 2018)</p>
+          <p class="animated fadeInUp">Final project for JHU 140.711 Advanced Data Science (Fall 2018) <br> Albert Kuo and Athena Chen</p>
         </div>
       </div>
     </div>
   </div>
 </section>
+
 <!-- Wrapper Start -->
 <section id="intro">
   <div class="container">
@@ -28,18 +29,18 @@ permalink: /
             <p>Around one hundred players jump out of a plane with a parachute, the clothes on them, and no other items. Players must loot for weapons and boosts to survive. Who will be the last player standing?</p>
           </div>
           <p>Battle royale games have surged in popularity in recent years. The premise of such games is as follows: players are dropped onto a fictional island and fight to be the last person standing. As they roam around the island, they loot for weapons and items crucial for their survival. Players can choose to join a game as a solo player or with a group of friends (4 players maximum). When playing solo, players are immediately eliminated when they are killed. Players not only have to worry about getting killed by other players, but they also have to stay within the shrinking "safe zone," which effectively forces players into contact with each other. Outside of the "safe zone," players take damage to their health at increasing rates. </p>
-          <a href="#" class="btn btn-view-works">View Works</a>
         </div>
       </div><!-- .col-md-7 close -->
       <div class="col-md-5 col-sm-12">
         <div class="block">
-          <img src="img/pubg_map.jpg" alt="PUBG_MAP" style="width:500px" border = "10">
+          <img src="img/pubg_map.jpg" alt="PUBG_MAP" style="width:500px" border = "10" vspace = "10">
         </div>
       </div><!-- .col-md-5 close -->
     </div>
   </div>
 </section>
 
+<!--- Motivation --->
 <section id="feature">
 <div class="container">
   <div class="row">
@@ -47,16 +48,15 @@ permalink: /
       <h2>WHAT DETERMINES A PLAYER'S FINAL MATCH PLACEMENT?</h2>
       <p>The main goal of this project is to predict a solo player's finish placement based on their in-game actions. Specifically, we wanted to answer: </p>
       <ol>
-        <li>Clustering: Which playing styles are most successful? <br></li>
-        <li>Model Prediction: How well can we predict a player's finish placement? How well can we classify winners?<br></li>
-        <li>Feature Ranking: What player actions or statistics are most predictive of their finish placement?</li>
+        <li>How well can we predict who will win the game?</li>
+        <li>What player actions or features are most predictive of their finish placement?</li>
       </ol>
     </div>
   </div>
 </div>
 </section>
 
-<!-- Data Description Start -->
+<!-- Data -->
 <section id="testimonial">
   <div class="container">
     <div class="row">
@@ -100,14 +100,19 @@ permalink: /
         {% endif %}
       </div>
     </div>
+  </div>
+</section>
+
+<!-- Data Analysis -->
+<section id="call-to-action">
+  <div class="container">
     <div class="row">
-      <div class="block">
-        <p> <br> From our exploratory data analysis, we noted the following relationships between the features and the finish percentile: </p>
-        <ul style="list-style-type:disc">
-          <li> <b> Use of Items</b> (<code>boosts</code>, <code>heals</code>, and <code>weapons_acquired</code>): Players who finish higher tend to have used more boosts and healing items, and acquired more weapons. This is expected since they stayed in the game for a longer period and have more time to collect and use items.
-          <li> <b> Kills & Damage</b> (<code>damage_dealt</code>, <code>kill_place</code>, and <code>kills</code>): Players who finish higher tend to have more kills. They also tend to have dealt more damage. However, in the top finishing group, there is a wide variety in how much damage they inflict. This could potentially indicate strategies that differ in their level of aggressiveness during the course of the game but are similarly successful in achieving a high placement.
-          <li> <b> Distance Traveled</b> (<code>walk_distance</code>, <code> swim_distance</code>, and <code>ride_distance</code>): Players who finish higher tend to have walked farther. This is likely because they simply survive longer and are force to travel to stay in the safe zone, whereas players who die early don't get a chance to travel very far. Both swimming and riding in vehicles are rare occurrences, though it appears that players who finish higher also tend to do more of both.
-        </ul>
+      <div class="col-md-12">
+        <div class="block">
+          <h2>Predicting Players' Final Placement </h2>
+          <p> To answer our motivating questions, we explored three prediction models based on linear regression, penalized general linear regression, and random forests. Parameter tuning was done using 5-fold cross-validation. We then evaluated the performance of each model using the mean absolute error, self-defined accuracy metric, and accuracy for classification of winners. The best model, based on the performance evaluation, predicted finish percentiles within ~3% of the true finish percentile on average. Additionally, we looked at the relative importance of player features in predicting final player percentile. </p>
+          <a class="btn btn-default btn-call-to-action" href="#" >Read More About Our Models</a>
+        </div>
       </div>
     </div>
   </div>
@@ -115,85 +120,33 @@ permalink: /
 
 
 <!-- Data Description Start -->
-<section id="data_Description">
+<section id="service">
   <div class="container">
     <div class="row">
       <div class="section-title">
-        <h2>The Data</h2>
-        <p>Since this work was inspired by a <a href = "https://www.kaggle.com/c/pubg-finish-placement-prediction"> Kaggle competition </a>, the data can be downloaded via the Kaggle API. For the sake of this project, we focus on match data for solo-player modes only. The dataset consists of: </p>
+        <h2>Key Takeaways</h2>
       </div>
     </div>
     <div class="row ">
-      <div class="col-sm-6 col-md-3">
+      <div class="col-sm-6 col-md-4">
         <div class="service-item">
-          <i class="icon ion-coffee"></i>
-          <h4>Branding</h4>
-          <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut </p>
+          <i class="icon ion-knife"></i>
+          <h4>Kills and Damage</h4>
+          <p>Features related to kills and damage were most predictive of winners and finish percentiles. </p>
         </div>
       </div>
-      <div class="col-sm-6 col-md-3">
+      <div class="col-sm-6 col-md-4">
         <div class="service-item">
-          <i class="ion-compass"></i>
-          <h4>Web Design</h4>
-          <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut </p>
+          <i class="ion-coffee"></i>
+          <h4>Boosts</h4>
+          <p>The second most predictive features were items acquired in the game, specifically boosts and weapons. Boosts provide healing over time and movement speed buffs. </p>
         </div>
       </div>
-      <div class="col-sm-6 col-md-3">
+      <div class="col-sm-6 col-md-4">
         <div class="service-item">
-          <i class="ion-image"></i>
-          <h4>App Design</h4>
-          <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut </p>
-        </div>
-      </div>
-      <div class="col-sm-6 col-md-3">
-        <div class="service-item">
-          <i class="ion-bug"></i>
-          <h4>Start Up</h4>
-          <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut </p>
-        </div>
-      </div>
-      <div class="col-sm-6 col-md-3">
-        <div class="service-item">
-          <i class="ion-headphone"></i>
-          <h4>Logo Design</h4>
-          <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut </p>
-        </div>
-      </div>
-      <div class="col-sm-6 col-md-3">
-        <div class="service-item">
-          <i class="ion-leaf"></i>
-          <h4>Development</h4>
-          <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut </p>
-        </div>
-      </div>
-      <div class="col-sm-6 col-md-3">
-        <div class="service-item">
-          <i class="ion-planet"></i>
-          <h4>Brand Identity</h4>
-          <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut </p>
-        </div>
-      </div>
-      <div class="col-sm-6 col-md-3">
-        <div class="service-item">
-          <i class="ion-earth"></i>
-          <h4>Brand Identity</h4>
-          <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut </p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-
-<!-- Call to action Start -->
-<section id="call-to-action">
-  <div class="container">
-    <div class="row">
-      <div class="col-md-12">
-        <div class="block">
-          <h2>We design delightful digital experiences.</h2>
-          <p>Read more about what we do and our philosophy of design. Judge for yourself The work and results we’ve achieved for other clients, and meet our highly experienced Team who just love to design.</p>
-          <a class="btn btn-default btn-call-to-action" href="#" >Tell Us Your Story</a>
+          <i class="ion-android-person"></i>
+          <h4>Winners</h4>
+          <p>Winners on average killed 6 times more players than the average match participant.</p>
         </div>
       </div>
     </div>
