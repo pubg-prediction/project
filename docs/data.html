@@ -35,17 +35,6 @@ permalink: /data/
               </div>
               <div class="portfolio-contant">
                 <ul id="portfolio-contant-active">
-                    <li class="mix all">
-                      <a href="#">
-                        <img src="{{ site.baseurl }}/img/corr_plot.png">
-                        <div class="overly">
-                          <div class="position-center">
-                            <h2>Correlation Plot</h2>
-                            <p>Pairwise correlations between features. </p>
-                          </div>
-                        </div>
-                      </a>
-                    </li>
                     <li class="mix Items">
                       <a href="#">
                         <img src="{{ site.baseurl }}/img/data_plot_1.png">
@@ -237,10 +226,10 @@ permalink: /data/
       <div class="col-md-12">
         <div class="block">
           <h2>Summary of Exploratory Data Anaysis</h2>
-          <p>The figures above show the distribution of various features within the data by final placement percentiles. From our exploratory data analysis, we found that statistics related to kills seem to be well correlated with finish percentile while duration of game does not seem to be strongly correlated with many of the in-game features with the exception of walk_distance. Furthermore, </p>
+          <p>The figures above show the distribution of various features within the data by final placement percentiles. From our exploratory data analysis, we found that, </p>
           <ul style="list-style-type:disc">
-            <li> <b>Use of Items</b> (boosts, heals, and weapons_acquired): Players who finish higher tend to have used more boosts and healing items, and acquired more weapons. This is expected since they stayed in the game for a longer period and have more time to collect and use items. However, it would be interesting to explore which of these features is most predictive of a high finish placement.
-            <li> <b> Kills & Damage</b> (damage_dealt, kill_place, and kills): Players who finish higher tend to have more kills. They also tend to have dealt more damage. However, in the top finishing group, there is a wide variety in how much damage they inflict. This could potentially indicate strategies that differ in their level of aggressiveness during the course of the game but are similarly successful in achieving a high placement.
+            <li> <b>Use of Items</b> (boosts, heals, and weapons_acquired): Players who finish higher tend to have used more boosts and healing items, and acquired more weapons. This is expected since they stayed in the game for a longer period and have more time to collect and use items.
+            <li> <b> Kills & Damage</b> (damage_dealt, kill_place, and kills): Players who finish higher tend to have more kills. They also tend to have dealt more damage. 
             <li> <b> Distance Traveled</b> (walk_distance, swim_distance, and ride_distance): Players who finish higher tend to have walked farther. This is likely because they simply survive longer and are force to travel to stay in the safe zone, whereas players who die early don’t get a chance to travel very far. Both swimming and riding in vehicles are rare occurrences, though it appears that players who finish higher also tend to do more of both.
           </ul>
         </div>
