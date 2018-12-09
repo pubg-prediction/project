@@ -144,7 +144,7 @@
     <div class="row">
       <div class="section-title">
         <h2>The Data</h2>
-        <p>This project was inspired by a <a href = "https://www.kaggle.com/c/pubg-finish-placement-prediction"> Kaggle competition </a> to predict player finish placement for various PUBG game data and was provided by the team at PUBG. Thus, the data can be downloaded via the Kaggle API. In this project, we opted to focus only on match data for solo-players. Additionally, due to computational costs, we only looked at a small subset of the full dataset provided by Kaggle. We first explored the distribution of each feature by the final finish percentile. Players were grouped into the 0-19th, 20th-39th, 40th-59th, 60th-79th, or 80th-100th percentile finish. Then we plotted the density of features by percentile groups. This gives some indication of how predictive our features will be. Note that due to extreme outliers, we excluded the highest 1% of many of the features for clearer visualizations. The data set consists of: </p>
+        <p>This project was inspired by a <a href = "https://www.kaggle.com/c/pubg-finish-placement-prediction"> Kaggle competition </a> to predict player finish placement for various PUBG game data and was provided by the team at PUBG. Thus, the data can be downloaded via the Kaggle API. In this project, we opted to focus only on match data for solo-players. Additionally, due to computational costs, we only looked at a small subset of the full dataset provided by Kaggle. We first explored the distribution of each feature by the final finish percentile. Players were grouped into the 0-19th, 20th-39th, 40th-59th, 60th-79th, or 80th-100th percentile finish. Then we plotted the density of features by percentile groups. This gives some indication of how predictive our features will be. Note that due to extreme outliers, we excluded the highest 1% of many of the features for clearer visualizations. The subsetted data set consists of: </p>
       </div>
     </div>
     <div class="row">
@@ -174,7 +174,7 @@
             <li>
               <div class="block">
                 <i class="ion-podium"></i>
-                <h4 class="counter">17</h4>
+                <h4 class="counter">16</h4>
                 <span>Features</span>
               </div>
             </li>
@@ -309,13 +309,6 @@
                 </div>
             </div>
             
-            <div>
-                <p></p>
-                <div class="feature">
-                  <img src="img/eda_plots/data_plot_17.png" alt="graphs">
-                </div>
-            </div>
-            
           </div>
         </div>
         
@@ -332,7 +325,7 @@
       <div class="col-md-12">
         <div class="block">
           <h2>Predicting Players' Final Placement </h2>
-          <p> To answer our motivating questions, we explored three prediction models based on linear regression, penalized general linear regression, and random forests. Parameter tuning was done using 5-fold cross-validation. We then evaluated the performance of each model using the mean absolute error, self-defined accuracy metric, and accuracy for classification of winners. The best model, based on the performance evaluation, predicted finish percentiles within ~5% of the true finish percentile on average (mean absolute error). Additionally, half of all predicted finish percentiles were within ~3% of the true finish percentiles (median absolute error). Furthermore, we looked at the relative importance of player features in predicting final player percentile. </p>
+          <p> To answer our motivating questions, we explored three prediction models based on linear regression, penalized general linear regression, and random forest. Parameter tuning was done using 5-fold cross-validation. We then evaluated the performance of each model using the mean absolute error, self-defined accuracy metric, and accuracy for classification of winners. The best model, based on the performance evaluation, predicted finish percentiles within ~5% of the true finish percentile on average (mean absolute error). Additionally, half of all predicted finish percentiles were within ~3% of the true finish percentiles (median absolute error). Furthermore, we looked at the relative importance of player features in predicting final player percentile. </p>
           <a class="btn btn-default btn-call-to-action" href="/project/analysis" >Read More About How We Analyzed the Data</a>
         </div>
       </div>
