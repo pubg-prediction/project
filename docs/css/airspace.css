@@ -194,7 +194,7 @@ font header .navbar-default .navbar-nav li a:hover {
   background-attachment: fixed;
   padding: 70px 0px;
   position: relative;
-  text-align: center;
+  text-align: left;
   color: #fff;
 }
 #call-to-action:before {
@@ -475,7 +475,7 @@ font header .navbar-default .navbar-nav li a:hover {
 }
 #portfolio-work .block .portfolio-contant ul li {
   float: left;
-  width: 32.22%;
+  width: 23.5%;
   overflow: hidden;
   margin: 6px;
   position: relative;
@@ -528,7 +528,8 @@ font header .navbar-default .navbar-nav li a:hover {
 #portfolio-work .block .portfolio-contant .position-center {
   position: absolute;
   top: 50%;
-  left: 10%;
+  left: 2%;
+  right: 2%;
   -webkit-transform: translate(0%, 50%);
   -moz-transform: translate(0%, 50%);
   -ms-transform: translate(0%, 50%);
