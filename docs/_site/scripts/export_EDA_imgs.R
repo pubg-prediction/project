@@ -11,7 +11,7 @@ tmp_dat <- train_solo %>%
          win_place_cat = as.factor(win_place_cat))
   
 # Make list of variable names to loop over.
-var_list = tmp_dat %>% select(-match_id, -match_duration, -id, -win_place_perc, -win_place_cat) %>% colnames()
+var_list = tmp_dat %>% select(-match_id, -id, -win_place_perc, -win_place_cat) %>% colnames()
 
 # Make plots.
 plot_list = list()
