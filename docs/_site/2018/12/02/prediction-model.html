@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html class="no-js">
+  <head>
+
+    <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>Prediction Models</title>
+<meta name="description" content="">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+
+<!-- CSS -->
+<link rel="stylesheet" href="/project/css/owl.carousel.css" />
+<link rel="stylesheet" href="/project/css/bootstrap.min.css" />
+<link rel="stylesheet" href="/project/css/font-awesome.min.css" />
+<link rel="stylesheet" href="/project/css/airspace.css" />
+<link rel="stylesheet" href="/project/css/style.css" />
+<link rel="stylesheet" href="/project/css/ionicons.min.css" />
+<link rel="stylesheet" href="/project/css/animate.css" />
+<link rel="stylesheet" href="/project/css/responsive.css" />
+<link rel="stylesheet" href="/project/css/syntax.css" />
+
+<!-- Js -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/vendor/jquery-1.10.2.min.js"><\/script>')</script>
+<script src="/project/js/bootstrap.min.js"></script>
+<script src="/project/js/owl.carousel.min.js"></script>
+<script src="/project/js/plugins.js"></script>
+<script src="/project/js/min/waypoints.min.js"></script>
+<script src="/project/js/jquery.counterup.js"></script>
+
+
+<script src="/project/js/main.js"></script>
+
+<!--
+/*
+ * Airspace
+ * Ported to Jekyll by Andrew Lee
+ * https://github.com/ndrewtl/airspace-jekyll
+ * Designed and Developed by ThemeFisher
+ * https://themefisher.com/
+ *
+ */
+-->
+
+
+  </head>
+  <body>
+
+
+    <!-- Header Start -->
+<header>
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      <!-- header Nav Start -->
+      <nav class="navbar navbar-default">
+        <div class="container-fluid">
+          <!-- Brand and toggle get grouped for better mobile display -->
+          <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="https://github.com/pubg-prediction/project">
+              <img src="/project/img/logo.png" alt="Logo" style="width:174px;height:50px;">
+            </a>
+          </div>
+            <!-- Collect the nav links, forms, and other content for toggling -->
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+              <ul class="nav navbar-nav navbar-right">
+                <li><a href="/project/">Overview</a></li>
+                <li><a href="/project/data">Data</a></li>
+                <li><a href="/project/analysis">Analysis</a></li>
+                <li><a href="/project/screencast">Screencast</a></li>
+              </ul>
+            </div><!-- /.navbar-collapse -->
+          </div><!-- /.container-fluid -->
+        </nav>
+      </div>
+    </div>
+  </div>
+</header><!-- header close -->
+
+
+
+    <div class="post">
+  <!-- Wrapper Start -->
+  <section id="intro" style="border: 1px dotted #ddd;">
+    <div class="container">
+      <div class="row">
+        <div>
+          <div class="block">
+            <h1>Prediction Models</h1>
+            <div class="post-info-wrapper">
+            </div>
+            <hr />
+            <p><p>In this section, we aim to answer our remaining two questions:</p>
+
+<ol>
+  <li>Model Prediction: How well can we predict a player’s finish placement? How well can we classify winners?</li>
+  <li>Feature Ranking: What player actions or statistics are most predictive of their finish placement?</li>
+</ol>
+
+<p>To answer these questions, we will fit the following models, test our model on an independent set, and examine feature importance scores:</p>
+
+<ol>
+  <li>Linear regression</li>
+  <li>Elastic net regression</li>
+  <li>Random forest</li>
+</ol>
+
+<p>Note: In training our models, unless stated otherwise, we will include all features except for the match ID and player ID, since neither feature is going to generalize for predicting new games, which is what we are interested in.</p>
+
+<h2 id="linear-regression">Linear Regression</h2>
+
+<p>First, we fit a linear regression model using step-wise model selection using AIC with 5-fold cross-validation. Since the win place percentage is a value between 0 and 1, we apply a log transformation (adding 1 to ensure all values are defined), so that it better fulfills the assumption that $y$ is a continuous variable on the real line. However, this still doesn’t guarantee that the predicted values will be between 0 and 1, so we constrain the predicted value to be 0 if it is negative and 1 if it is above 1.</p>
+
+<p>A plot of the predicted versus actual final percentiles is shown below.</p>
+
+<p><img src="/project/img/posts/lr_predvsactual.png" width="50%" align="middle" /></p>
+
+<h2 id="elastic-net-regression">Elastic net regression</h2>
+
+<p>As we noted earlier in the data exploration, some of the features are highly correlated and/or seem to provide little signal (such as distance traveled). To solve these issues, we implement elastic net regression which uses a ridge-regression-like penalty to adjust for correlated features and lasso penalty to shrink non-informative features to zero. Using 5-fold cross-validation in the training set, we tune regularization hyper parameters.</p>
+
+<p>A plot of the predicted versus actual final percentiles is shown below.</p>
+
+<p><img src="/project/img/posts/lasso_predvsactual.png" width="50%" align="middle" /></p>
+
+<h2 id="random-forest">Random Forest</h2>
+
+<p>To account for interactions between features, we can use a random forest model. Ensemble methods like random forest are known to generally perform better than regression models. Due to computational costs, however, we make the following choices:</p>
+
+<ol>
+  <li>Train the random forest model on 10,000 observations (as opposed to 60,000 observations).</li>
+  <li>Use 100 trees in the random forest.</li>
+</ol>
+
+<p>Again with 5-fold cross-validation, we tune hyper parameters for random forest.</p>
+
+<p>A plot of the predicted versus actual final percentiles is shown below.</p>
+
+<p><img src="/project/img/posts/rf_predvsactual.png" width="50%" align="middle" /></p>
+
+<p>Note that the spread of points narrows for players that place lower (actual win place percentage approaches 0). This indicates that we are able to predict the finish percentile more accurately for players that place higher.</p>
+
+<h2 id="comparison-of-models">Comparison of Models</h2>
+
+<p>We will compare our models with the following metrics on the validation set:</p>
+
+<ol>
+  <li><strong>Mean absolute error (MAE)</strong>: Represents the average absolute deviation.</li>
+</ol>
+
+<p><img src="/project/img/posts/MAE.png" width="50%" align="middle" /></p>
+
+<ol>
+  <li><strong>Self-defined accuracy metric (SDAM(x))</strong>: This metric is a function of a cutoff value $x$. If the predicted outcome is within $x\%$ of the actual win place percentage, we classify it as a “correct” prediction. Otherwise, it is an incorrect prediction.</li>
+</ol>
+
+<p><img src="/project/img/posts/SDAM.png" width="50%" align="middle" /></p>
+
+<ol>
+  <li><strong>Classification of Winners</strong>: We can compute the ROC curve by turning our predictions into a classification problem. Given a predicted win place percentage, we classify the player as a winner if its predicted value is less than a cutoff value $x\%$. For different cutoff values, we can then compute the sensitivity (true positive rate, or the proportion of actual winners we classify as such) and specificity (true negative rate, or the proportion of actual losers we classify as such).</li>
+</ol>
+
+<p><img src="/project/img/posts/ROC.png" width="50%" align="middle" /></p>
+
+<p>From the above plots, we can see that random forest performs best on all three metrics. This is despite the restrictions we had to place in order to run the random forest model in a reasonable amount of time. Its MAE is 0.058, which means that on average, the predicted win place percentage is 0.058 off from the true finish percentile. Its SDAM is consistently higher than the SDAM for linear regression or elastic net regression. For example, its SDAM(5) is 0.586, which means that for 58.6% of observations in our validation set, the predicted value is within 5% of the true win place percentage. Lastly, the area under its ROC curve is the largest, which indicates that it performs best at classifying who the winners are (sensitivity = 0.96, specificity = 0.82).</p>
+
+<p>These results have been validated on the test set – validation agreed with our findings noted above.</p>
+
+<h2 id="feature-ranking">Feature Ranking</h2>
+
+<p>We can look at the relative importance of features for each of the models.</p>
+
+<p><img src="/project/img/posts/feature_ranking.png" width="50%" align="middle" /></p>
+
+<p>Unexpectedly, there is not much agreement in the features that each model regards to be important. One explanation for this is the presence of highly correlated features in our data; for example, if we look at the features <code class="highlighter-rouge">kill_place</code> and <code class="highlighter-rouge">kill_streaks</code>, the former is rated as highly important by the linear regression and random forest, while the latter is rated as highly important by elastic net regression. However, the two features are known to be highly correlated with each other. While random forest performs best in prediction, the caveat with its importance score metric is that if multiple features are all predictive of the outcome but are highly correlated with the outcome, the importance score of each feature is going to be suppressed.</p>
+
+<p>Since elastic net regression accounts for correlation between features, we will primarily use its variable importance values to summarize our findings for ranking the importance of player characteristics and actions:</p>
+
+<ol>
+  <li>
+    <p>The most important predictor is the number of kills a player makes. Elastic net regression chooses <code class="highlighter-rouge">kill_streaks</code> as the most predictive among the different features related to kills. What this suggests is that while some players may succeed with less confrontational playing strategies, you need to kill other players or you will be eliminated.</p>
+  </li>
+  <li>
+    <p>Among items used, <code class="highlighter-rouge">weapons_acquired</code> and <code class="highlighter-rouge">boosts</code> are the strongest predictors of outcome. This is interesting because one would expect that among the features related to item acquisition and usage, weapons would be the dominant predictor. However, the acquisition of weapons may plateau over time once you have strong weapons. On the other hand, <code class="highlighter-rouge">boosts</code> enable increased health regeneration over time and have a small movement speed bonus when the amount of boosts consumed is beyond a particular threshold. Players tend to save boosts as an additional advantage in the later stages of the game when most players have powerful weapons. Consequently, the number of boosts consumed is also a strong indicator of a successful player.</p>
+  </li>
+</ol>
+</p>
+          </div>
+        </div><!-- .col-md-7 close -->
+      </div>
+    </div>
+  </section>
+</div>
+<p class="center-text" style="padding: 30px;">
+  <a href="/project/analysis">Back to analysis home</a>
+</p>
+
+
+
+
+
+
+
+
+
+
+
+    <!-- footer Start -->
+<footer>
+  <div class="container">
+    <div class="row">
+      <div class="col-md-12">
+        <div class="footer-manu">
+          <ul>
+            <li><a href="#">About Us</a></li>
+            <li><a href="/project/contact">Contact us</a></li>
+            <li><a href="#">How it works</a></li>
+            <li><a href="/project/blog">Blog</a></li>
+            <li><a href="#">Terms</a></li>
+          </ul>
+        </div>
+        <p>Copyright &copy; Design &amp; Developed by <a href="http://www.themefisher.com">Themefisher</a>. All rights reserved.</p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+    </body>
+</html>

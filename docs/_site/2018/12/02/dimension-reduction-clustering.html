@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html class="no-js">
+  <head>
+
+    <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>Dimension Reduction and Clustering</title>
+<meta name="description" content="">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+
+<!-- CSS -->
+<link rel="stylesheet" href="/project/css/owl.carousel.css" />
+<link rel="stylesheet" href="/project/css/bootstrap.min.css" />
+<link rel="stylesheet" href="/project/css/font-awesome.min.css" />
+<link rel="stylesheet" href="/project/css/airspace.css" />
+<link rel="stylesheet" href="/project/css/style.css" />
+<link rel="stylesheet" href="/project/css/ionicons.min.css" />
+<link rel="stylesheet" href="/project/css/animate.css" />
+<link rel="stylesheet" href="/project/css/responsive.css" />
+<link rel="stylesheet" href="/project/css/syntax.css" />
+
+<!-- Js -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/vendor/jquery-1.10.2.min.js"><\/script>')</script>
+<script src="/project/js/bootstrap.min.js"></script>
+<script src="/project/js/owl.carousel.min.js"></script>
+<script src="/project/js/plugins.js"></script>
+<script src="/project/js/min/waypoints.min.js"></script>
+<script src="/project/js/jquery.counterup.js"></script>
+
+
+<script src="/project/js/main.js"></script>
+
+<!--
+/*
+ * Airspace
+ * Ported to Jekyll by Andrew Lee
+ * https://github.com/ndrewtl/airspace-jekyll
+ * Designed and Developed by ThemeFisher
+ * https://themefisher.com/
+ *
+ */
+-->
+
+
+  </head>
+  <body>
+
+
+    <!-- Header Start -->
+<header>
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      <!-- header Nav Start -->
+      <nav class="navbar navbar-default">
+        <div class="container-fluid">
+          <!-- Brand and toggle get grouped for better mobile display -->
+          <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="https://github.com/pubg-prediction/project">
+              <img src="/project/img/logo.png" alt="Logo" style="width:174px;height:50px;">
+            </a>
+          </div>
+            <!-- Collect the nav links, forms, and other content for toggling -->
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+              <ul class="nav navbar-nav navbar-right">
+                <li><a href="/project/">Overview</a></li>
+                <li><a href="/project/data">Data</a></li>
+                <li><a href="/project/analysis">Analysis</a></li>
+                <li><a href="/project/screencast">Screencast</a></li>
+              </ul>
+            </div><!-- /.navbar-collapse -->
+          </div><!-- /.container-fluid -->
+        </nav>
+      </div>
+    </div>
+  </div>
+</header><!-- header close -->
+
+
+
+    <div class="post">
+  <!-- Wrapper Start -->
+  <section id="intro" style="border: 1px dotted #ddd;">
+    <div class="container">
+      <div class="row">
+        <div>
+          <div class="block">
+            <h1>Dimension Reduction and Clustering</h1>
+            <div class="post-info-wrapper">
+            </div>
+            <hr />
+            <p><p>Another way we could investigate feature ranking is if we hypothesize that features that exhibit the most variability also best explain our outcome variable. Principal components analysis (PCA) is a popular dimension reduction method that accomplishes this task. Rather than describing the data using the features given in the data set, PCA transforms the features to get orthogonal vectors that explain the variability within the dataset in descending order.</p>
+
+<h2 id="principal-components-analysis">Principal Components Analysis</h2>
+<p>After applying PCA, we can look at the variance and cumulative variance explained by the each principal components as shown below.</p>
+
+<p><img src="/project/img/posts/pc_varplot.png" width="50%" align="middle" /></p>
+
+<p><img src="/project/img/posts/pc_cumvar.png" width="50%" align="middle" /></p>
+
+<p>The first principal component explains about a third of the variability we see in our features (33.6%), while the second to sixth principal component all explain between 5 to 10%. The first three components cover over 50% of the variation we see in our data.</p>
+
+<p>We also visualize each feature’s contribution to the first two principal components and their correlations.</p>
+
+<p><img src="/project/img/posts/pc_variables.png" width="50%" align="middle" /></p>
+
+<ol>
+  <li>
+    <p><strong>PC 1</strong>: The first principal component comprises of features related to player’s damage and kills, primarily the features <code class="highlighter-rouge">kills</code>, <code class="highlighter-rouge">kill_place</code>, and <code class="highlighter-rouge">damage_dealt</code>. To a lesser extent, features like <code class="highlighter-rouge">kill_steaks</code>, <code class="highlighter-rouge">longest_kill</code>, <code class="highlighter-rouge">headshot_kills</code>, <code class="highlighter-rouge">boosts</code>, and <code class="highlighter-rouge">heals</code> also exhibit contribution primarily to the first principal component.</p>
+  </li>
+  <li>
+    <p><strong>PC 2</strong>: The second principal component is characterized by details related to the match setting, i.e. <code class="highlighter-rouge">max_place</code> and <code class="highlighter-rouge">n_groups</code>.</p>
+  </li>
+  <li>
+    <p><strong>PC 3</strong>: We can examine the table of contributions to each principal component to deduce which features contribute the most to the third principal component. The third principal component explains variation in features not well-represented in the first two components, such as <code class="highlighter-rouge">match_duration</code> and <code class="highlighter-rouge">ride_distance</code>.</p>
+  </li>
+</ol>
+
+<p>From PCA, we can conclude that there are two primary dimensions along which our observations vary in terms of their features. The first dimension relates to player actions, specifically how much damage you dealt to other players. The second dimension relates to match characteristics representing the total number of players. From a player perspective, we are much more interested in the first principal component, since how you play is something within your control, while the number of opponents you are facing is not.</p>
+
+<h2 id="clustering-of-winners">Clustering of Winners</h2>
+
+<p>Another natural question we chose to explore with this dataset is to see whether we could identify which playing styles are most successful. Since the probability of winning increases as the number of players decrease, it is to the players’ advantage to eliminate players. Thus, we can hypothesize that successful players may take two approaches to the game:</p>
+
+<ol>
+  <li>
+    <p><strong>Aggressive Strategy</strong>: Players drop in a populated location and attempt to take control of the location. This is a high-risk and high-reward strategy as players are more likely to die early in the game due to an increased number of encounters but are rewarded with superior weapons and boosts.</p>
+  </li>
+  <li>
+    <p><strong>Passive Strategy</strong>: Rather than eliminating other players yourself, the passive strategy relies on surviving until other players have been eliminated. This typically involves hiding to minimize encounters until only a few players remain, then selectively taking fights until the player is the only one remaining.</p>
+  </li>
+</ol>
+
+<p>First, we attempted to identify these strategies in our data by looking at the distribution of the percentage of total players killed by winners.</p>
+
+<p><img src="/project/img/posts/prop_players_killed.png" width="50%" align="middle" /></p>
+
+<p>Most winners kill a substantial proportion of their opponents – on average, they eliminate 6% of players in the match. However, if there was a clear distinction between the two strategies in terms of proportion of players killed, we would expect to see a multi-modal distribution in the proportion of players killed for match winners. It is worth noting that there is a slight bump for winners with 0 to 0.1 proportion of players killed (where the winner may have only eliminated the second place player). However, it is not a sufficiently high bump to characterize the distribution as bimodal.</p>
+
+<p>We also use PCA on the winners to see if there are clear clusters. In fact, we do see two clear clusters. However, we can see that the smaller cluster consists of winners of matches with very few players and those winners did not commit any kills, which means that all the other players were eliminated by some other factor (whether by forfeiting, not staying with the safe zone, or being killed by other players). Therefore, these clusters are not reflective of the different playing styles we hypothesized about. Upon further consideration, even if the playing styles we described accurately reflect reality, we may not have the necessary data that would’ve helped us cluster them. Some examples include:</p>
+
+<ol>
+  <li>
+    <p>Drop location: An important indicator of aggressiveness, as described earlier, is where a player chooses to drop on the map. We did not have this data and are therefore missing an important signal for playing style.</p>
+  </li>
+  <li>
+    <p>Time of kill: Aggressive players would likely be killing throughout the whole game while passive players would have most of their kills concentrated in the end. Or there may be a hybrid strategy where players are aggressive in the beginning to loot more items, then keep a low profile until the very end. Thus, longitudinal data for when a player killed other players would have helped separate different strategies.</p>
+  </li>
+</ol>
+
+<p>Since we only have data on the total number of kills (relative and absolute), that may not be a sufficient signal to separate playing strategies. On the other hand, it may also be possible that clusters for playing strategies don’t exist at all. Perhaps all winners pursue what we would consider an aggressive stratey, in which case we would not see separate clusters either.</p>
+
+<h2 id="summary">Summary</h2>
+<p>In conclusion, PCA revealed that orthogonal features that describe our player data can be broadly categorized as <code class="highlighter-rouge">kills, damage, and items</code>, <code class="highlighter-rouge">match setting</code>, and <code class="highlighter-rouge">rare features</code> (like swimming distance). Though we attempted to identify potential winning strategies, we realized that the provided data may not have a strong enough signal for strategy identification.</p>
+</p>
+          </div>
+        </div><!-- .col-md-7 close -->
+      </div>
+    </div>
+  </section>
+</div>
+<p class="center-text" style="padding: 30px;">
+  <a href="/project/analysis">Back to analysis home</a>
+</p>
+
+
+
+
+
+
+
+
+
+
+
+    <!-- footer Start -->
+<footer>
+  <div class="container">
+    <div class="row">
+      <div class="col-md-12">
+        <div class="footer-manu">
+          <ul>
+            <li><a href="#">About Us</a></li>
+            <li><a href="/project/contact">Contact us</a></li>
+            <li><a href="#">How it works</a></li>
+            <li><a href="/project/blog">Blog</a></li>
+            <li><a href="#">Terms</a></li>
+          </ul>
+        </div>
+        <p>Copyright &copy; Design &amp; Developed by <a href="http://www.themefisher.com">Themefisher</a>. All rights reserved.</p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+    </body>
+</html>

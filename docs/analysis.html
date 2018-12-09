@@ -1,7 +1,7 @@
 ---
 layout: page
-title: Blog
-permalink: /blog/
+title: Analysis
+permalink: /analysis/
 ---
 <!-- Slider Start -->
 <section id="global-header">
@@ -9,8 +9,8 @@ permalink: /blog/
     <div class="row">
       <div class="col-md-12">
         <div class="block">
-          <h1>Get the latest on what we're doing</h1>
-          <p>Catch up with us, anytime and anywhere</p>
+          <h1>Analysis</h1>
+          <p>Read about how we analyzed the data set and what we found. </p>
         </div>
       </div>
     </div>
@@ -19,7 +19,6 @@ permalink: /blog/
 {% for post in site.posts %}
 <div class="post-area">
   <a href="{{ post.url | prepend: site.baseurl }}" class="bold">{{ post.title }}</a>
-  <p class="post-date">{{ post.date | date_to_long_string }}</p>
   <p>
     {{ post.content | strip_html | truncatewords: 50 }}
   </p>
