@@ -225,7 +225,7 @@ Clearly, many features are highly correlated with each other. In particular, `ki
 
 Because of the high correlation between features, we determined that it was important to account for that in our prediction methods. One such method we used was elastic net regression, which incorporates L2 regularization to deal with problems from highly correlated features. Elastic net regression also uses L1 regularization which shrinks coefficients to 0 and performs feature selection, which is of interest to us for feature ranking.
 
-In the training set, `n_groups` = `max_place` for all matches, which means that we have data for all players up to the `max_place` player. Therefore, we remove the `n_groups` feature.
+We also note that in the training set, `n_groups` = `max_place` for all matches, which means that we have data for all players up to the `max_place` player. Therefore, we remove the `n_groups` feature.
 
 ```{r}
 all.equal(train_solo$n_groups, train_solo$max_place)
