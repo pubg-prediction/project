@@ -108,7 +108,7 @@
         <div class="block">
           <div class="section-title">
             <h2>About PlayerUnknowns' Battlegrounds (PUBG)</h2>
-            <p>Around one hundred players jump out of a plane with a parachute, the clothes on them, and no other items. Players must loot for weapons and boosts to survive. Who will be the last player standing?</p>
+            <p>Around one hundred players jump out of a plane with no items. Players must loot for weapons and other items to survive. Who will be the last player standing?</p>
           </div>
           <p>Battle royale games have surged in popularity in recent years. The premise of such games is as follows: players are dropped onto a fictional island and fight to be the last person standing. As they roam around the island, they loot for weapons and items crucial for their survival. Players can choose to join a game as a solo player or with a group of friends (4 players maximum). When playing solo, players are immediately eliminated when they are killed. Players not only have to worry about getting killed by other players, but they also have to stay within the shrinking "safe zone," which effectively forces players into contact with each other. Outside of the "safe zone," players take damage to their health at increasing rates. </p>
         </div>
@@ -130,8 +130,8 @@
       <h2>WHAT DETERMINES A PLAYER'S FINAL MATCH PLACEMENT?</h2>
       <p>The main goal of this project is to predict a solo player's finish placement based on their in-game actions. Specifically, we wanted to answer: </p>
       <ol>
-        <li>How well can we predict who will win the game?</li>
-        <li>What player actions or features are most predictive of their finish placement?</li>
+        <li style="font-size:15px";>How well can we predict who will win the game?</li>
+        <li style="font-size:15px";>What player actions or features are most predictive of their finish placement?</li>
       </ol>
     </div>
   </div>
@@ -156,7 +156,7 @@
             <li>
               <div class="block">
                 <i class="ion-android-walk"></i>
-                <h4 class="counter">720386</h4>
+                <h4 class="counter">99040</h4>
                 <span>Players</span>
               </div>
             </li>
@@ -165,7 +165,7 @@
             <li>
               <div class="block">
                 <i class="ion-laptop"></i>
-                <h4 class="counter">8034</h4>
+                <h4 class="counter">1058</h4>
                 <span>Games Played</span>
               </div>
             </li>
@@ -304,7 +304,7 @@
       <div class="col-md-12">
         <div class="block">
           <h2>Predicting Players' Final Placement </h2>
-          <p> To answer our motivating questions, we explored three prediction models based on linear regression, penalized general linear regression, and random forests. Parameter tuning was done using 5-fold cross-validation. We then evaluated the performance of each model using the mean absolute error, self-defined accuracy metric, and accuracy for classification of winners. The best model, based on the performance evaluation, predicted finish percentiles within ~3% of the true finish percentile on average. Additionally, we looked at the relative importance of player features in predicting final player percentile. </p>
+          <p> To answer our motivating questions, we explored three prediction models based on linear regression, penalized general linear regression, and random forests. Parameter tuning was done using 5-fold cross-validation. We then evaluated the performance of each model using the mean absolute error, self-defined accuracy metric, and accuracy for classification of winners. The best model, based on the performance evaluation, predicted finish percentiles within ~5% of the true finish percentile on average. Additionally, half of all predicted finish percentiles were within ~3% of the true finish percentiles. Furthermore, we looked at the relative importance of player features in predicting final player percentile. </p>
           <a class="btn btn-default btn-call-to-action" href="/project/analysis" >Read More About How We Analyzed the Data</a>
         </div>
       </div>
@@ -324,6 +324,13 @@
     <div class="row ">
       <div class="col-sm-6 col-md-4">
         <div class="service-item">
+          <i class="ion-android-checkbox-outline"></i>
+          <h4>Prediction Accuracy</h4>
+          <p>On average, our predicted final placement percentiles were within 5% of the true values.</p>
+        </div>
+      </div>
+      <div class="col-sm-6 col-md-4">
+        <div class="service-item">
           <i class="icon ion-knife"></i>
           <h4>Kills and Damage</h4>
           <p>Features related to kills and damage were most predictive of winners and finish percentiles. </p>
@@ -333,14 +340,7 @@
         <div class="service-item">
           <i class="ion-coffee"></i>
           <h4>Boosts</h4>
-          <p>The second most predictive features were items acquired in the game, specifically boosts and weapons. Boosts provide healing over time and movement speed buffs. </p>
-        </div>
-      </div>
-      <div class="col-sm-6 col-md-4">
-        <div class="service-item">
-          <i class="ion-android-person"></i>
-          <h4>Winners</h4>
-          <p>Winners on average killed 6 times more players than the average match participant.</p>
+          <p>The second most predictive features were items acquired in the game, specifically boosts and weapons. </p>
         </div>
       </div>
     </div>
@@ -364,11 +364,10 @@
       <div class="col-md-12">
         <div class="footer-manu">
           <ul>
-            <li><a href="#">About Us</a></li>
-            <li><a href="/project/contact">Contact us</a></li>
-            <li><a href="#">How it works</a></li>
-            <li><a href="/project/blog">Blog</a></li>
-            <li><a href="#">Terms</a></li>
+            <li><a href="/project/">Overview</a></li>
+            <li><a href="/project/data">Data</a></li>
+            <li><a href="/project/analysis">Analysis</a></li>
+            <li><a href="/project/screencast">Screencast</a></li>
           </ul>
         </div>
         <p>Copyright &copy; Design &amp; Developed by <a href="http://www.themefisher.com">Themefisher</a>. All rights reserved.</p>
