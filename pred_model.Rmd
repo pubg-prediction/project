@@ -187,7 +187,7 @@ train_solo %>%
   mutate(win_place_cat = floor(win_place_perc / 0.2),
          win_place_cat = ifelse(win_place_cat == 5, 4, win_place_cat),
          win_place_cat = as.factor(win_place_cat)) %>%
-  gather("feature", "value", -match_id, -match_duration, 
+  gather("feature", "value", -match_id, 
          -id, -win_place_perc, -win_place_cat) %>%
   ggplot(aes(x = value, group = win_place_cat, color = win_place_cat)) +
   facet_wrap(feature ~., scales = "free") +
@@ -478,7 +478,7 @@ predictions_solo %>%
   theme_bw()
 ```
 
-Note that the spread of points narrows for players that place lower (actual win place percentage approaches 0). This indicates that we are able to predict the finish percentile more accurately for players that place higher.
+Note that the spread of points narrows for players that place lower (actual win place percentage approaches 0). This indicates that we are able to predict the finish percentile more accurately for players that place lower.
 
 ## Feature Ranking
 
