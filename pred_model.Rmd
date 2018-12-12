@@ -270,7 +270,8 @@ fviz_pca_var(pc,
              col.var = "contrib", # Color by contributions to the PC
              gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
              repel = TRUE         # Avoid text overlapping
-             )
+             ) + 
+  theme(legend.position = "top")
 ```
 
 The first principal component explains about a third of the variability we see in our features (`r round((pc$sdev^2/sum(pc$sdev^2))[1]*100, 1)`%), while the second to sixth principal component all explain between 5 to 10%. The first three components cover over 50% of the variation we see in our data. 
@@ -279,9 +280,9 @@ We also visualize each feature's contribution to the first two principal compone
 
 1. **PC 1**: The first principal component comprises of features related to player's damage and kills, primarily the features `kills`, `kill_place`, and `damage_dealt`. To a lesser extent, features like `kill_steaks`, `longest_kill`, `headshot_kills`, `boosts`, and `heals` also exhibit contribution primarily to the first principal component. 
 
-2. **PC 2**: The second principal component is characterized by details related to the match setting, i.e. `max_place` and `n_groups`.
+2. **PC 2**: The second principal component is characterized by details related to the match setting, i.e. `ride_distance` and `match_dration`.
 
-3. **PC 3**: We can examine the table of contributions to each principal component to deduce which features contribute the most to the third principal component. The third principal component explains variation in features not well-represented in the first two components, such as `match_duration` and `max_place`.
+3. **PC 3**: We can examine the table of contributions to each principal component to deduce which features contribute the most to the third principal component. The third principal component explains variation in features not well-represented in the first two components, such as `max_place` and `road_kills`.
 
 From PCA, we can conclude that there are two primary dimensions along which our observations vary in terms of their features. The first dimension relates to player actions, specifically how much damage you dealt to other players. The second dimension relates to match characteristics representing the total number of players. From a player perspective, we are much more interested in the first principal component, since how you play is something within your control, while the number of opponents you are facing is not. 
 

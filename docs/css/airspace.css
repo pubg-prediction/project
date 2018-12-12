@@ -61,6 +61,13 @@ a:active {
   font-style: italic;
   color: #666;
 }
+
+.center {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 50%;
+}
 /*--
 	Header Start
 --*/
@@ -158,6 +165,7 @@ font header .navbar-default .navbar-nav li a:hover {
 #intro .section-title p {
   padding-top: 20px;
 }
+
 /*--
 	service Start
 --*/
@@ -269,6 +277,7 @@ font header .navbar-default .navbar-nav li a:hover {
   color: #fff;
   padding: 10px 20px;
 }
+
 /*--
 	content Start
 --*/
@@ -281,7 +290,6 @@ font header .navbar-default .navbar-nav li a:hover {
   padding-top: 110px;
 }
 #testimonial .block p {
-  padding-top: 50px;
   color: #7B7B7B;
 }
 #testimonial .counter-box li {
@@ -308,7 +316,8 @@ font header .navbar-default .navbar-nav li a:hover {
   margin: 0 auto;
 }
 #testimonial .testimonial-carousel img {
-  padding-bottom: 38px;
+  padding-top: 10px;
+  padding-bottom: 10px;
 }
 #testimonial .testimonial-carousel p {
   line-height: 28px;
