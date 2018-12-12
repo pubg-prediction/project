@@ -190,8 +190,20 @@
             <li> Random forest: to account for interactions between features, we can use a random forest model. Ensemble methods like random forest are known to generally perform better than regression models. </li>
           </ol>
           <p> We fit all models using five-fold cross validation and included all features except for the match ID and player ID, since neither feature is going to generalize for predicting new games, which is what we are interested in.  Additionally, since the win place percentage is a value between 0 and 1, we apply a log transformation (adding 1 to ensure all values are defined), so that it better fulfills the assumption that the outcome is a continuous variable on the real line. However, this still doesn't guarantee that the predicted values will be between 0 and 1, so we constrain the predicted value to be 0 if it is negative and 1 if it is above 1. </p>
-          <img src = "../img/model_plots/merged_plots.png" alt = "models" class="center" vspace = "50" width="1500px">
+          <img src = "../img/merged_model_plots.png" alt = "models" class="center" vspace = "50" width="1500px">
           <p> A visual inspection of plots of the predicted win place percentile versus the actual win place percentile suggests that the random forest model performs the best of the three models. In the random forest model, the spread of points is smaller for players that place lower (actual win place percentage approaches 0), indicating that we are able to predict the finish percentile more accurately for players that place lower in the random forest model in comparison to the models based on linear regression or elastic net regression. </p>
+
+          <h2>Comparing Model Performance </h2>
+          <p> To quantitatively compare our three models, we used the following metrics: </p>
+          <ol>
+            <li><b>Mean absolute error (MAE)</b>: the average absolute deviation between the predicted and actual win place percentages. </li>
+            <li><b>Self-defined accuracy metric (SDAM(x))</b>: This metric is a function of a cutoff value, <code>x</code>. If the predicted outcome is within <code>x</code>% of the actual win place percentage, we classify it as a "correct" prediction. Otherwise, it is an incorrect prediction. </li>
+            <li><b>Classification of Winners</b>: We can compute the ROC curve by turning our predictions into a classification problem. Given a predicted win place percentage, we classify the player as a winner if its predicted value is less than a cutoff value <code>x</code>%. For different cutoff values, we can then compute the sensitivity (true positive rate, or the proportion of actual winners we classify as such) and specificity (true negative rate, or the proportion of actual losers we classify as such).</li>
+          </ol>
+          <p> The performance of the three models for each metric is shown below.
+          </p>
+          <img src = "../img/merged_perf_plot.png" alt = "performance" class="center" vspace = "50" width="1500px">
+          <p> From the above plots, we can see that random forest performs best on all three metrics. Its MAE is around 0.05, which means that on average, the predicted win place percentage is 5% off from the true finish percentile. Its SDAM is consistently higher than the SDAM for linear regression or elastic net regression. For example, its SDAM(5) is around 0.65, which means that for 65% of observations in our validation set, the predicted value is within 5% of the true win place percentage. Lastly, the area under its ROC curve is the largest, which indicates that it performs best at classifying who the winners are (sensitivity approximately 0.94, specificity approximately 0.86). 
         </div>
       </div>
     </div>
