@@ -53,7 +53,7 @@ The main goal of this project is to predict a solo player's finish placement bas
 
 For question #1, we unfortunately found that the data we have didn't lend itself well to clustering playing styles. For example, data on where a player chooses to land on the map would be indicative of how aggressive a player is at the beginning of the match -- landing in a city with plenty of looting items, where you are likely to encounter many other players, versus landing in a remote area, where you are likely not going to. Data on when a player kills another player would also have been insightful -- a consistently aggressive winner would likely have kills throughout the game, while a more passive winner would only kill towards the end of the game, when it is necessary to do so. 
 
-Due to the limitations of the data with regard to clustering, we instead did more exploratory analysis with dimension reduction (principal components analysis) to help us better understand the features and improve our answers to question #2 and #3. Therefore, we focused our analysis on questions #2 and #3. 
+Due to the limitations of the data with regards to clustering, we instead did more exploratory analysis with dimension reduction (principal components analysis) to help us better understand the features and improve our answers to question #2 and #3. Therefore, we focused our analysis on questions #2 and #3. 
 
 # Data
 
@@ -82,7 +82,7 @@ clean_dat = raw_dat %>%
 
 ## Variables
 
-Each row in the data contains one player's post-game stats. A description of all data fields is provided in `data/pubg_codebook.csv`. We will focus on the solo game mode (`match_type` = `solo`, `solo-fpp`, or `normal-solo-fpp`). The solo game mode constitutes about 16% of the data, with 720,386 observations. The outcome variable we are trying to predict is `win_place_perc`.
+Each row in the data contains one player's post-game stats. A description of all data fields is provided in `data/pubg_codebook.csv`. We will focus on the solo game mode (`match_type` = `solo`, `solo-fpp`, or `normal-solo-fpp`). The solo game mode constitutes about `r round(dim(clean_dat %>% filter(match_type %in% c("solo", "solo-fpp", "normal-solo-fpp")))[1]/dim(clean_dat)[1]*100)`% of the data, with 720,386 observations. The outcome variable we are trying to predict is `win_place_perc`.
 
 ```{r clean_data}
 solo_dat <- clean_dat %>% 
@@ -96,7 +96,7 @@ solo_dat <- clean_dat %>%
   select(-kill_points, -win_points, -rank_points) # Variables being deprecated
 ```
 
-The variable `num_groups` did not match the actual number of groups we had in our data, so we replace the variable with our own and call it `n_groups`.
+The variable `num_groups` did not match the actual number of groups we had in our data, so we replace the variable with the number of players we have in the match and call it `n_groups`.
 
 ```{r}
 match_n_groups = solo_dat %>%
@@ -273,7 +273,7 @@ fviz_pca_var(pc,
              )
 ```
 
-The first principal component explains about a third of the variability we see in our features (33.6%), while the second to sixth principal component all explain between 5 to 10%. The first three components cover over 50% of the variation we see in our data. 
+The first principal component explains about a third of the variability we see in our features (`r round((pc$sdev^2/sum(pc$sdev^2))[1]*100, 1)`%), while the second to sixth principal component all explain between 5 to 10%. The first three components cover over 50% of the variation we see in our data. 
 
 We also visualize each feature's contribution to the first two principal components and their correlations.
 
@@ -281,7 +281,7 @@ We also visualize each feature's contribution to the first two principal compone
 
 2. **PC 2**: The second principal component is characterized by details related to the match setting, i.e. `max_place` and `n_groups`.
 
-3. **PC 3**: We can examine the table of contributions to each principal component to deduce which features contribute the most to the third principal component. The third principal component explains variation in features not well-represented in the first two components, such as `match_duration` and `ride_distance`.
+3. **PC 3**: We can examine the table of contributions to each principal component to deduce which features contribute the most to the third principal component. The third principal component explains variation in features not well-represented in the first two components, such as `match_duration` and `max_place`.
 
 From PCA, we can conclude that there are two primary dimensions along which our observations vary in terms of their features. The first dimension relates to player actions, specifically how much damage you dealt to other players. The second dimension relates to match characteristics representing the total number of players. From a player perspective, we are much more interested in the first principal component, since how you play is something within your control, while the number of opponents you are facing is not. 
 
@@ -343,6 +343,7 @@ train_solo %>% filter(win_place_perc == 1) %>%
 Most winners kill a substantial proportion of their opponents -- on average, they eliminate `r round(mean(train_solo %>% filter(win_place_perc == 1) %>% mutate(prop_killed = kills/max_place) %>% .$prop_killed),2)` of players in the match. However, if there was a clear distinction between the two strategies in terms of proportion of players killed, we would expect to see a multi-modal distribution in the proportion of players killed for match winners. It is worth noting that there is a slight bump for winners with 0 to 0.1 proportion of players killed (where the winner may have only eliminated the second place player). However, it is not a sufficiently high bump to characterize the distribution as bimodal. 
 
 ```{r}
+# PCA for winners
 winners_solo = train_solo %>%
   filter(win_place_perc == 1)
 
@@ -352,12 +353,14 @@ X = winners_solo %>%
 
 pc = prcomp(X, center = T, scale = T)
 
+# Plot feature contribution to PCs
 fviz_pca_var(pc,
              col.var = "contrib", # Color by contributions to the PC
              gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
              repel = TRUE         # Avoid text overlapping
              )
 
+# Plot winners by kills
 data.frame(PC1 = pc$x[,1], PC2 = pc$x[,2]) %>%
   ggplot(aes(PC1, PC2, color = (winners_solo$kills==0))) +
   geom_point(alpha = 0.5) +
@@ -365,8 +368,9 @@ data.frame(PC1 = pc$x[,1], PC2 = pc$x[,2]) %>%
        color = "Number of kills = 0") +
   theme_bw()
 
+# Plot winners by number of players in the match
 data.frame(PC1 = pc$x[,1], PC2 = pc$x[,2]) %>%
-  ggplot(aes(PC1, PC2, color = (winners_solo$n_groups))) +
+  ggplot(aes(PC1, PC2, color = (winners_solo$max_place))) +
   geom_point(alpha = 0.5) +
   labs(title = "Winners by PC1 and PC2, colored by number of players",
        color = "Number of players in the match") +
@@ -457,7 +461,7 @@ predictions_solo %>%
 
 To account for interactions between features, we can use a random forest model. Ensemble methods like random forest are known to generally perform better than regression models. Due to computational costs, however, we make the following choices:
 
-1. Train the random forest model on 10,000 observations (as opposed to 60,000 observations).
+1. Train the random forest model on ~10,000 observations (as opposed to ~60,000 observations).
 2. Use 100 trees in the random forest.
 
 Again with 5-fold cross-validation, we tune hyper parameters for random forest.
@@ -638,7 +642,7 @@ data.frame(cutoff = rep(cutoff, 3),
 
 ```
 
-From the above plots, we can see that random forest performs best on all three metrics. This is despite the restrictions we had to place in order to run the random forest model in a reasonable amount of time. Its MAE is 0.058, which means that on average, the predicted win place percentage is 0.058 off from the true finish percentile. Its SDAM is consistently higher than the SDAM for linear regression or elastic net regression. For example, its SDAM(5) is 0.586, which means that for 58.6% of observations in our validation set, the predicted value is within 5% of the true win place percentage. Lastly, the area under its ROC curve is the largest, which indicates that it performs best at classifying who the winners are (sensitivity = 0.96, specificity = 0.82). 
+From the above plots, we can see that random forest performs best on all three metrics. This is despite the restrictions we had to place in order to run the random forest model in a reasonable amount of time. Its MAE is `r round(metrics_solo %>% filter(model == "rf", metric == "mae") %>% select(value), 3)`, which means that on average, the predicted win place percentage is `r round(metrics_solo %>% filter(model == "rf", metric == "mae") %>% select(value), 3)` off from the true finish percentile. Its SDAM is consistently higher than the SDAM for linear regression or elastic net regression. For example, its SDAM(5) is `r round(metrics_solo %>% filter(model == "rf", metric == "sdam") %>% select(value), 3)`, which means that for `r round(metrics_solo %>% filter(model == "rf", metric == "mae") %>% select(value), 3)*100 `% of observations in our validation set, the predicted value is within 5% of the true win place percentage. Lastly, the area under its ROC curve is the largest, which indicates that it performs best at classifying who the winners are (sensitivity = `r sens_rf[which(sens_rf + spec_rf - 1 == max(sens_rf + spec_rf - 1))]`, specificity = `r spec_rf[which(sens_rf + spec_rf - 1 == max(sens_rf + spec_rf - 1))]`). 
 
 ## Performance on Test Set
 
