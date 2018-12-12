@@ -714,6 +714,6 @@ In our exploratory data analysis, we noted that features like `kills`, `boosts`,
 
 **Limitations**
 
-Our data analysis has a number of limitations. The first is that for computational purposes, we only used around 20% of the total amount of solo-player data. In the future, we could consider repeating the analysis with a larger data set. Second, we only examined solo player data, so our conclusions are not generalizable to group gameplay, which is complicated by aspects of teamwork such as revival and positioning.  
+Our data analysis has a number of limitations. The first is that for computational purposes, we only used around 20% of the total amount of solo-player data. In the future, we could consider repeating the analysis with a larger data set. Second, we only examined solo player data, so our conclusions are not generalizable to group gameplay, which is complicated by aspects of teamwork such as revival and positioning. Finally, we could have explored using the Beta distribution to model our outcome of interest since the final win place percentile is a value between 0 and 1. 
 
 We were unable to identify clusters of different playing strategies among winners, due to the limitations of the data we have. However, our data analysis indicates that aggressive players who have more kills relative to other players do perform better on average. 

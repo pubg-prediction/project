@@ -27,7 +27,7 @@ permalink: /analysis/
     </div>
     <div class="block">
       <div class="col-md-6">
-          <p>In our principal component analysis, the first principal component explains about a third of the variability we see in our features (35.6%), while the second to sixth principal component all explain between 5 to 10%. Together, the first three components cover over 50% of the variation we see in our data. Plotting the top 3 PCs and coloring the points by finish percentile (Figures 1-3 on the right), we see that higher values on PC 1 correspond to higher win place percentages. As hypothesized, the largest variability we see in our features also appears to be predictive of our outcome variable. </p>
+          <p>In PCA, the first principal component explains about a third of the variability we see in our features (35.6%), while the second to sixth principal component all explain between 5 to 10%. Together, the first three components cover over 50% of the variation we see in our data. Plotting the top 3 PCs and coloring the points by finish percentile (Figures 1-3 on the right), we see that higher values on PC 1 correspond to higher win place percentages. As hypothesized, the largest variability we see in our features also appears to be predictive of our outcome variable. </p>
           <p> From the visualization of each feature's contribution to the first two principal components (Figure 4), we conclude that there are two primary dimensions along which our observations vary in terms of their features. The first dimension relates to player actions, specifically how much damage you dealt to other players. The second dimension relates to match characteristics representing the total number of players. From a player perspective, we are much more interested in the first principal component, since how you play is something within your control, while the number of opponents you are facing is not.  </p>
       </div>
       <div class="col-md-6">
@@ -55,7 +55,7 @@ permalink: /analysis/
       <div class="col-md-12">
         <div class="block">
           <h2>Identifying Successful Playstyles </h2>
-          <p> In our data set, we were hoping to identify which playstyles lead to the greatest chance of winning. Since the probability of winning increases as the number of players decrease, it is to the players' advantage to eliminate players. Thus, we can hypothesize that successful players may take two approaches to the game:</p>
+          <p> Additionally, we were hoping to identify which playstyles lead to the greatest chance of winning. Since the probability of winning increases as the number of players decrease, it is to the players' advantage to eliminate players. Thus, we can hypothesize that successful players may take two approaches to the game:</p>
           <ol>
             <li> <b> Aggressive Strategy</b>: Players drop in a populated location and attempt to take control of the location. This is a high-risk and high-reward strategy as players are more likely to die early in the game due to an increased number of encounters but are rewarded with superior weapons and boosts. </li>
             <li> <b>Passive Strategy</b>: Rather than eliminating other players yourself, the passive strategy relies on surviving until other players have been eliminated. This typically involves hiding to minimize encounters until only a few players remain, then selectively taking fights until the player is the only one remaining.</li>
@@ -74,34 +74,29 @@ permalink: /analysis/
 <section id="testimonial">
   <div class="container">
     <div class="row">
-      <div class="section-title">
-        <h2>Prediction Players' Final Placement Percentile</h2>
-        <p>We hypothesized that features that contribute to the most variability within the data also best explain our outcome of interest. To test this hypothesis, we performed principal component analysis (PCA).</p>
-      </div>
-    </div>
-    <div class="block">
-      <div class="col-md-6">
-          <p>In our principal component analysis, the first principal component explains about a third of the variability we see in our features (35.6%), while the second to sixth principal component all explain between 5 to 10%. Together, the first three components cover over 50% of the variation we see in our data. Plotting the top 3 PCs and coloring the points by finish percentile (Figures 1-3 on the right), we see that higher values on PC 1 correspond to higher win place percentages. As hypothesized, the largest variability we see in our features also appears to be predictive of our outcome variable. </p>
-          <p> From the visualization of each feature's contribution to the first two principal components (Figure 4), we conclude that there are two primary dimensions along which our observations vary in terms of their features. The first dimension relates to player actions, specifically how much damage you dealt to other players. The second dimension relates to match characteristics representing the total number of players. From a player perspective, we are much more interested in the first principal component, since how you play is something within your control, while the number of opponents you are facing is not.  </p>
-      </div>
-      <div class="col-md-6">
-        {% if site.data.pc.size > 0 %}
-        <div class="testimonial-carousel">
-          <div id="testimonial-slider" class="owl-carousel">
-            {% for tm in site.data.pc %}
-            <div>
-                <div class="feature">
-                  <img src="{{ tm.image }}" alt="graphs">
-                </div>
-            </div>
-            {% endfor %}
-          </div>
+      <div class="col-md-12">
+        <div class = "block">
+          <h2>Prediction Players' Final Placement Percentile</h2>
+          <p> For our data analysis, we were primarily interested in answering: </p>
+          <ol>
+            <li> Model Prediction: How well can we predict a player's finish placement? How well can we classify winners?</li>
+            <li> Feature Ranking: What player actions or statistics are most predictive of their finish placement?</li>
+          </ol>
+          <p> To answer these questions, we will fit the following models, test our model on an independent set, and examine feature importance scores:</p>
+          <ol>
+            <li> Linear regression </li>
+            <li> Elastic net regression: as we noted earlier in the data exploration, some of the features are highly correlated and/or seem to provide little signal (such as distance traveled). To solve these issues, we implement elastic net regression which uses a ridge-regression-like penalty to adjust for correlated features and lasso penalty to shrink non-informative features to zero. </li>
+            <li> Random forest: to account for interactions between features, we can use a random forest model. Ensemble methods like random forest are known to generally perform better than regression models. </li>
+          </ol>
+          <p> We fit all models using five-fold cross validation and included all features except for the match ID and player ID, since neither feature is going to generalize for predicting new games, which is what we are interested in.  Additionally, since the win place percentage is a value between 0 and 1, we apply a log transformation (adding 1 to ensure all values are defined), so that it better fulfills the assumption that the outcome is a continuous variable on the real line. However, this still doesn't guarantee that the predicted values will be between 0 and 1, so we constrain the predicted value to be 0 if it is negative and 1 if it is above 1. </p>
+          <img src = "../img/model_plots/merged_plots.png" alt = "models" class="center" vspace = "50" width="1500px">
+          <p> A visual inspection of plots of the predicted win place percentile versus the actual win place percentile suggests that the random forest model performs the best of the three models. In the random forest model, the spread of points is smaller for players that place lower (actual win place percentage approaches 0), indicating that we are able to predict the finish percentile more accurately for players that place lower in the random forest model in comparison to the models based on linear regression or elastic net regression. </p>
         </div>
-        {% endif %}
       </div>
     </div>
   </div>
 </section>
+
 
 <section id="call-to-action">
   <div class="container">
@@ -109,7 +104,7 @@ permalink: /analysis/
       <div class="col-md-12">
         <div class="block">
           <h2>Limitations </h2>
-          <p> Our data analysis has a number of limitations. The first is that for computational purposes, we only used around 20% of the total amount of solo-player data. In the future, we could consider repeating the analysis with a larger data set. Second, we only examined solo player data, so our conclusions are not generalizable to group gameplay, which is complicated by aspects of teamwork such as revival and positioning. </p>
+          <p> Our data analysis has a number of limitations. The first is that for computational purposes, we only used around 20% of the total amount of solo-player data. In the future, we could consider repeating the analysis with a larger data set. Second, we only examined solo player data, so our conclusions are not generalizable to group gameplay, which is complicated by aspects of teamwork such as revival and positioning. Finally, we could have explored using the Beta distribution to model our outcome of interest since the final win place percentile is a value between 0 and 1. </p>
           <p> We were unable to identify clusters of different playing strategies among winners, due to the limitations of the data we have. However, our data analysis indicates that aggressive players who have more kills relative to other players do perform better on average.  </p>
         </div>
       </div>
