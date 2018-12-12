@@ -294,6 +294,9 @@ font header .navbar-default .navbar-nav li a:hover {
 }
 
 #testimonial .block img {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
   width: 100%;
 }
 

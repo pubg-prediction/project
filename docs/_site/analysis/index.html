@@ -190,7 +190,7 @@
             <li> Random forest: to account for interactions between features, we can use a random forest model. Ensemble methods like random forest are known to generally perform better than regression models. </li>
           </ol>
           <p> We fit all models using five-fold cross validation and included all features except for the match ID and player ID, since neither feature is going to generalize for predicting new games, which is what we are interested in.  Additionally, since the win place percentage is a value between 0 and 1, we apply a log transformation (adding 1 to ensure all values are defined), so that it better fulfills the assumption that the outcome is a continuous variable on the real line. However, this still doesn't guarantee that the predicted values will be between 0 and 1, so we constrain the predicted value to be 0 if it is negative and 1 if it is above 1. </p>
-          <img src = "../img/merged_model_plots.png" alt = "models" class="center" vspace = "50" width="1500px">
+          <img src = "../img/merged_model_plots.png" alt = "models" class="center" vspace = "50" width="10000">
           <p> A visual inspection of plots of the predicted win place percentile versus the actual win place percentile suggests that the random forest model performs the best of the three models. In the random forest model, the spread of points is smaller for players that place lower (actual win place percentage approaches 0), indicating that we are able to predict the finish percentile more accurately for players that place lower in the random forest model in comparison to the models based on linear regression or elastic net regression. </p>
 
           <h2>Comparing Model Performance </h2>
@@ -203,13 +203,22 @@
           <p> The performance of the three models for each metric is shown below.
           </p>
           <img src = "../img/merged_perf_plot.png" alt = "performance" class="center" vspace = "50" width="1500px">
-          <p> From the above plots, we can see that random forest performs best on all three metrics. Its MAE is around 0.05, which means that on average, the predicted win place percentage is 5% off from the true finish percentile. Its SDAM is consistently higher than the SDAM for linear regression or elastic net regression. For example, its SDAM(5) is around 0.65, which means that for 65% of observations in our validation set, the predicted value is within 5% of the true win place percentage. Lastly, the area under its ROC curve is the largest, which indicates that it performs best at classifying who the winners are (sensitivity approximately 0.94, specificity approximately 0.86). 
+          <p> From the above plots, we can see that random forest performs best on all three metrics. Its MAE is around 0.05, which means that on average, the predicted win place percentage is 5% off from the true finish percentile. Its SDAM is consistently higher than the SDAM for linear regression or elastic net regression. For example, its SDAM(5) is around 0.65, which means that for 65% of observations in our validation set, the predicted value is within 5% of the true win place percentage. Lastly, the area under its ROC curve is the largest, which indicates that it performs best at classifying who the winners are (sensitivity approximately 0.94, specificity approximately 0.86).</p>
+
+          <h2> Feature Ranking </h2>
+          <p>We can look at the relative importance of features within each model as shown below.</p>
+          <img src="../img/feature_ranking2.png" alt="feature_ranking" class="center" vspace = "10">
+          <p> Unexpectedly, there is not much agreement in the features that each model regards to be important. One explanation for this is the presence of highly correlated features in our data; for example, if we look at the features <code>kill_place</code> and <code>kill_streaks</code>, the former is rated as highly important by the linear regression and random forest, while the latter is rated as highly important by elastic net regression. However, the two features are known to be highly correlated with each other. While random forest performs best in prediction, the caveat with its importance score metric is that if multiple features are all predictive of the outcome but are highly correlated with the outcome, the importance score of each feature is going to be suppressed.</p>
+          <p> Since elastic net regression accounts for correlation between features, we will primarily use its variable importance values to summarize our findings for ranking the importance of player characteristics and actions: </p>
+          <ol>
+            <li> The most important predictor is the number of kills a player makes. Elastic net regression chooses <code>kill_streaks</code> as the most predictive among the different features related to kills. What this suggests is that while some players may succeed with less confrontational playing strategies, you need to kill other players or you will be eliminated.</li>
+            <li> Among items used, <code>weapons_acquired</code> and boosts are the strongest predictors of outcome. This is interesting because one would expect that among the features related to item acquisition and usage, weapons would be the dominant predictor. However, the acquisition of weapons may plateau over time once you have strong weapons. On the other hand,  boosts enable increased health regeneration over time and have a small movement speed bonus when the amount of boosts consumed is beyond a particular threshold. Players tend to save boosts as an additional advantage in the later stages of the game when most players have powerful weapons. Consequently, the number of boosts consumed is also a strong indicator of a successful player. </li>
+          </ol>
         </div>
       </div>
     </div>
   </div>
 </section>
-
 
 <section id="call-to-action">
   <div class="container">
