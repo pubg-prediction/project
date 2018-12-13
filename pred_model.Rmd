@@ -235,7 +235,7 @@ train_solo = train_solo %>%
 ```
 
 
-# Dimension reduction and clustering
+# Dimension Reduction and Clustering
 
 Another way we could investigate feature ranking is if we hypothesize that features that exhibit the most variability also best explain our outcome variable. Principal components analysis (PCA) is a popular dimension reduction method that accomplishes this task. 
 
@@ -439,7 +439,7 @@ predictions_solo %>%
   theme_bw()
 ```
 
-## Elastic net regression
+## Elastic Net Regression
 
 As we noted earlier in the data exploration, some of the features are highly correlated and/or seem to provide little signal (such as distance traveled). To solve these issues, we implement elastic net regression which uses a ridge-regression-like penalty to adjust for correlated features and lasso penalty to shrink non-informative features to zero. Using 5-fold cross-validation in the training set, we tune regularization hyper parameters. 
 
