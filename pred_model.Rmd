@@ -138,11 +138,11 @@ solo_dat = solo_dat %>%
   filter(!(match_id %in% remove_match_ids))
 ```
 
-There are `r length(remove_match_ids)` for which this was the case.
+There are `r length(remove_match_ids)` matches for which this was the case.
 
 ## Training and Test Set 
 
-We are given a training set and a test set. The outcome variable for the test set will not be provided until the end of the Kaggle competition in Jan. 30th, 2019. Therefore, for this project, we will only be using the provided training set. Due to computational costs in fitting models, we will only use observations from 2000 of the matches (23% of the available data). Within this set, we create our own "training" (60%), "validation" (20%), and "test" set (20%). We split observations by match rather than player, so all players from the same match will be in the same set ("training", "validation", or "test").
+We are given a training set and a test set. The outcome variable for the test set will not be provided until the end of the Kaggle competition on Jan. 30th, 2019. Therefore, for this project, we will only be using the provided training set. Due to computational costs in fitting models, we will only use observations from 2000 of the matches (23% of the available data). Within this set, we create our own "training" (60%), "validation" (20%), and "test" set (20%). We split observations by match rather than player, so all players from the same match will be in the same set ("training", "validation", or "test").
 
 For the rest of our analysis, the "training set" refers to the one we've created.
 
@@ -279,11 +279,11 @@ We also visualize each feature's contribution to the first two principal compone
 
 1. **PC 1**: The first principal component comprises of features related to player's damage and kills, primarily the features `kills`, `kill_place`, and `damage_dealt`. To a lesser extent, features like `kill_steaks`, `longest_kill`, `headshot_kills`, `boosts`, and `heals` also exhibit contribution primarily to the first principal component. 
 
-2. **PC 2**: The second principal component is characterized by details related to the match setting, i.e. `ride_distance` and `match_dration`.
+2. **PC 2**: The second principal component is more characterized by details related to the match setting like `match_duration`, though `ride_distance` and `walk_distance` also contribute to this principal component.
 
-3. **PC 3**: We can examine the table of contributions to each principal component to deduce which features contribute the most to the third principal component. The third principal component explains variation in features not well-represented in the first two components, such as `max_place` and `road_kills`.
+3. **PC 3**: We can examine the table of contributions to each principal component to deduce which features contribute the most to the third principal component. The third principal component explains variation in features not well-represented in the first two components, such as `swim_distance` and `road_kills`.
 
-From PCA, we can conclude that there are two primary dimensions along which our observations vary in terms of their features. The first dimension relates to player actions, specifically how much damage you dealt to other players. The second dimension relates to match characteristics representing the total number of players. From a player perspective, we are much more interested in the first principal component, since how you play is something within your control, while the number of opponents you are facing is not. 
+From PCA, we can conclude that there are two primary dimensions along which our observations vary in terms of their features. The first dimension relates to player actions, specifically, how much damage you dealt to other players and how many kills you have. The second dimension relates to match characteristics. From a player perspective, we are much more interested in the first principal component, since how you play is something within your control, while match characteristics are not. 
 
 ```{r pca_points}
 # Plot points on principal components 1 and 2 
@@ -340,7 +340,7 @@ train_solo %>% filter(win_place_perc == 1) %>%
   theme_bw()
 ```
 
-Most winners kill a substantial proportion of their opponents -- on average, they eliminate `r round(mean(train_solo %>% filter(win_place_perc == 1) %>% mutate(prop_killed = kills/max_place) %>% .$prop_killed),2)` of players in the match. However, if there was a clear distinction between the two strategies in terms of proportion of players killed, we would expect to see a multi-modal distribution in the proportion of players killed for match winners. It is worth noting that there is a slight bump for winners with 0 to 0.1 proportion of players killed (where the winner may have only eliminated the second place player). However, it is not a sufficiently high bump to characterize the distribution as bimodal. 
+Most winners kill a substantial proportion of their opponents -- on average, they eliminate `r round(mean(train_solo %>% filter(win_place_perc == 1) %>% mutate(prop_killed = kills/max_place) %>% .$prop_killed),3)*100`% of players in the match. However, if there was a clear distinction between the two strategies in terms of proportion of players killed, we would expect to see a multi-modal distribution in the proportion of players killed for match winners. It is worth noting that there is a slight bump for winners with 0 to 0.1 proportion of players killed (where the winner may have only eliminated the second place player). However, it does not appear to be a sufficiently high bump to characterize the distribution as bimodal. 
 
 ```{r}
 # PCA for winners
@@ -375,9 +375,19 @@ data.frame(PC1 = pc$x[,1], PC2 = pc$x[,2]) %>%
   labs(title = "Winners by PC1 and PC2, colored by number of players",
        color = "Number of players in the match") +
   theme_bw()
+
+# Plot winners by match duration
+data.frame(PC1 = pc$x[,1], PC2 = pc$x[,2]) %>%
+  ggplot(aes(PC1, PC2, color = (winners_solo$match_duration))) +
+  geom_point(alpha = 0.5) +
+  labs(title = "Winners by PC1 and PC2, colored by match duration",
+       color = "Match duration") +
+  theme_bw()
 ```
 
-We also use PCA on the winners to see if there are clear clusters. In fact, we do see two clear clusters. However, we can see that the smaller cluster consists of winners of matches with very few players and those winners did not commit any kills, which means that all the other players were eliminated by some other factor (whether by forfeiting, not staying with the safe zone, or being killed by other players). Therefore, these clusters are not reflective of the different playing styles we hypothesized about. Upon further consideration, even if the playing styles we described accurately reflect reality, we may not have the necessary data that would've helped us cluster them. Some examples include:
+We use PCA on the winners to see if there are clear clusters. In fact, we do see some evidence of clusters. There is a smaller cluster to the left, which represents winners of matches with very few players, who did not have any kills. Then there is some separation in the larger cluster into two clusters that is defined by match duration. In other words, the clusters likely represent match characteristics rather than different playing styles. 
+
+Upon further consideration, even if the playing styles we described accurately reflect reality, we may not have the necessary data that would've helped us cluster them. Some data we would have liked to have include:
 
 1. Drop location: An important indicator of aggressiveness, as described earlier, is where a player chooses to drop on the map. We did not have this data and are therefore missing an important signal for playing style. 
 
@@ -398,7 +408,7 @@ To answer these questions, we will fit the following models, test our model on a
 2. Elastic net regression
 3. Random forest
 
-Note: In training our models, unless stated otherwise, we will include all features except for the match ID and player ID, since neither feature is going to generalize for predicting new games, which is what we are interested in. 
+Note: In training our models, we do not include match ID or player ID as features, since neither is going to generalize for predicting new games. 
 
 ## Linear Regression
 
@@ -522,29 +532,32 @@ rf_imp = varImp(rf_model$finalModel) %>%        # importance scores
 imp = full_join(lm_imp, lasso_imp, by = "variable") %>%
   full_join(., rf_imp, by = "variable") %>%
   select(variable, everything()) %>%
-  mutate_at(vars(lm_imp:rf_imp), function(x){scale(x, center = F)})     # Normalize importance scores within models
-
-# Note: for some reason, can't do this step in mutate:
-imp$variable = factor(imp$variable, levels = imp$variable[order(imp$lasso_imp, decreasing = T)])
-
-imp = imp %>%
-  gather(model, importance, -variable)
+  mutate(variable = factor(variable, levels = variable[order(lasso_imp, decreasing = F)])) %>%
+  gather(model, importance, -variable) %>%
+  mutate(model = factor(model),
+         model = fct_recode(model, 
+                             "Elastic Net" = "lasso_imp",
+                             "Linear" = "lm_imp",
+                             "Random Forest" = "rf_imp"))
 
 # Make a plot for variable importance
 imp %>%
   ggplot(aes(x = variable, y = importance, fill = model)) +
   geom_col(position = "dodge") + 
+  facet_wrap(~ model, scales = "free_x") +
+  coord_flip() +
   labs(title = "Feature Ranking",
        x = "Feature",
-       y = "Importance (Scaled)",
+       y = "Importance",
        fill = "Model") +
   scale_fill_manual(labels = c("Elastic Net", "Linear", "Random Forest"),
                     values = c("#999999", "#E69F00", "#56B4E9")) +
   theme_bw() + 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 90, hjust = 1),
+        legend.position = "none")
 ```
 
-Unexpectedly, there is not much agreement in the features that each model regards to be important. One explanation for this is the presence of highly correlated features in our data; for example, if we look at the features `kill_place` and `kill_streaks`, the former is rated as highly important by the linear regression and random forest, while the latter is rated as highly important by elastic net regression. However, the two features are known to be highly correlated with each other. While random forest performs best in prediction, the caveat with its importance score metric is that if multiple features are all predictive of the outcome but are highly correlated with the outcome, the importance score of each feature is going to be suppressed.
+Unexpectedly, there is not much agreement in the features that each model regards to be important. One explanation for this is the presence of highly correlated features in our data; for example, if we look at the features `kill_place` and `kill_streaks`, the former is rated as highly important by the linear regression and random forest (but not elastic net regression), while the latter is rated as highly important by elastic net regression (but not random forest). However, the two features are known to be highly correlated with each other. While random forest performs best in prediction, the caveat with its importance score metric is that if multiple features are all predictive of the outcome but are highly correlated with the outcome, the importance score of each feature is going to be suppressed.
 
 Since elastic net regression accounts for correlation between features, we will primarily use its variable importance values to summarize our findings for ranking the importance of player characteristics and actions:
 
@@ -706,14 +719,14 @@ As casual gamers and biostatistics students, we are interested in features and s
 
 **Best performing model: random forest**
 
-To predict finish placement percentile, we used linear regression, elastic net regression, and random forest. Using mean absolute error (MAE), our self-defined accuracy metric (SDAM) quantifying the proportion of predictions that fall within x% of the true win place percentage, and the AUC for classification of winners, we found that the random forest model performed best on the validation set. On an independent test set, the predicted finish percentile was on average `r round(pred_test_metrics$rf_test_mae, 3)` from the true finish percentile. We also achieved a sensitivity of 0.88 and specificity 0.86, meaning that we are able to correctly classify 88% of winners correctly while correctly classifying 86% of losers.
+To predict finish placement percentile, we used linear regression, elastic net regression, and random forest. Using mean absolute error (MAE), our self-defined accuracy metric (SDAM) quantifying the proportion of predictions that fall within x% of the true win place percentage, and the ROC curve for classification of winners, we found that the random forest model performed best on the validation set. On an independent test set, the predicted finish percentile was on average `r round(pred_test_metrics$rf_test_mae, 3)` from the true finish percentile. We also achieved a sensitivity of 0.88 and specificity 0.86, meaning that we are able to correctly classify 88% of winners correctly while correctly classifying 86% of losers.
 
 **Most predictive player features**
 
-In our exploratory data analysis, we noted that features like `kills`, `boosts`, and `walk_distance` are highly correlated with finish placement percentile (`win_place_percentile`). These results were largely in agreement with our feature ranking analysis, where we determined that among player actions, their kills were the most predictive, followed by the acquisition and usage of weapons and boosts.
+In our exploratory data analysis, we noted that features like `kills`, `boosts`, and `walk_distance` are highly correlated with finish placement percentile (`win_place_percentile`). These results were largely in agreement with our feature ranking analysis, where we determined that among player actions, their kills were the most predictive, followed by the acquisition and usage of weapons and boosts. 
 
 **Limitations**
 
-Our data analysis has a number of limitations. The first is that for computational purposes, we only used around 20% of the total amount of solo-player data. In the future, we could consider repeating the analysis with a larger data set. Second, we only examined solo player data, so our conclusions are not generalizable to group gameplay, which is complicated by aspects of teamwork such as revival and positioning. Finally, we could have explored using the Beta distribution to model our outcome of interest since the final win place percentile is a value between 0 and 1. 
+Our data analysis has a number of limitations. The first is that for computational purposes, we only used around 20% of the total amount of solo-player data. In the future, we could consider repeating the analysis with a larger data set. Second, we only examined solo player data, so our conclusions are not generalizable to group gameplay, which is complicated by aspects of teamwork such as revival and positioning. Finally, we could have explored using the Beta distribution to model our outcome of interest since the final win place percentile is a value between 0 and 1 as well as other machine learning methods like boosting. 
 
-We were unable to identify clusters of different playing strategies among winners, due to the limitations of the data we have. However, our data analysis indicates that aggressive players who have more kills relative to other players do perform better on average. 
+In addition, we were unfortunately unable to identify clusters of different playing strategies among winners, due (at least in part) to the limitations of the data. However, our data analysis indicates that aggressive players who have more kills relative to other players do perform better on average and that winners tended to have a high number of kills. 
