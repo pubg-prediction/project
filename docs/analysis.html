@@ -28,7 +28,7 @@ permalink: /analysis/
     <div class="block">
       <div class="col-md-6">
           <p>In PCA, the first principal component explains about a third of the variability we see in our features (35.6%), while the second to sixth principal component all explain between 5 to 10%. Together, the first three components cover over 50% of the variation we see in our data. Plotting the top 3 PCs and coloring the points by finish percentile (Figures 1-3 on the right), we see that higher values on PC 1 correspond to higher win place percentages. As hypothesized, the largest variability we see in our features also appears to be predictive of our outcome variable. </p>
-          <p> From the visualization of each feature's contribution to the first two principal components (Figure 4), we conclude that there are two primary dimensions along which our observations vary in terms of their features. The first dimension relates to player actions, specifically how much damage you dealt to other players. The second dimension relates to match characteristics representing the total number of players. From a player perspective, we are much more interested in the first principal component, since how you play is something within your control, while the number of opponents you are facing is not.  </p>
+          <p> From the visualization of each feature's contribution to the first two principal components (Figure 4), we conclude that there are two primary dimensions along which our observations vary in terms of their features. The first dimension relates to player actions, specifically how much damage you dealt to other players. The second dimension relates to match duration and, to a lesser extent, distance travelled. From a player perspective, we are more interested in the first principal component, since how many players you attack is something that is more within your control.  </p>
       </div>
       <div class="col-md-6">
         {% if site.data.pc.size > 0 %}
@@ -63,8 +63,13 @@ permalink: /analysis/
           <p> We first attempted to identify these strategies in our data by looking at the distribution of the percentage of total players killed by winners, as shown below.  </p>
           <img src = "../img/winners_killed.png" alt = "winners" class="center" vspace = "50">
           <p> Most winners kill a substantial proportion of their opponents -- on average, they eliminate ~ 7% of players. In comparison, non-winners eliminate ~1% of players on average. If there was a clear distinction between the two strategies in terms of proportion of players killed, we would expect to see a multi-modal distribution in the proportion of players killed for match winners. It is worth noting that there is a slight bump for winners with 0 to 0.1 proportion of players killed, but further data analysis revealed that this small cluster consists of games with fewer than fifty players. </p>
+<<<<<<< HEAD
           <p> Upon further consideration, even if the playing styles we described accurately reflect reality, we may not have the necessary data that would’ve helped us cluster them. Some examples include drop location and time of kills. Since we only have data on the total number of kills (relative and absolute), that may not be a sufficient signal to separate playing strategies. On the other hand, it may also be possible that clusters for playing strategies don’t exist at all. Perhaps all winners pursue what we would consider an aggressive strategy, in which case we would not see separate clusters either. </p>
           <p> Thus, while we were unable to identify strategies due to data limitations, our data analysis indicates that aggressive players who have more kills relative to other players do perform better on average.  </p>
+=======
+          <p> Upon further consideration, even if the playing styles we described accurately reflect reality, we may not have the necessary data that would’ve helped us cluster them. Some examples include drop location and time of kills. Since we only have data on the total number of kills (relative and absolute), that may not be a sufficient signal to separate playing strategies. On the other hand, it may also be possible that clusters for playing strategies don’t exist at all. Perhaps all winners pursue what we would consider an aggressive stratey, in which case we would not see separate clusters either. </p>
+          <p> Thus, while we were unable to identify strategies due to data limitations, our data analysis indicates that winners tend to kill a high number of players. </p>
+>>>>>>> 1740dac378b4437bb4189219a44a61612b6cbcba
         </div>
       </div>
     </div>
@@ -76,7 +81,7 @@ permalink: /analysis/
     <div class="row">
       <div class="col-md-12">
         <div class = "block">
-          <h2>Prediction Players' Final Placement Percentile</h2>
+          <h2>Predicting Players' Final Placement Percentile</h2>
           <p> For our data analysis, we were primarily interested in answering: </p>
           <ol>
             <li> Model Prediction: How well can we predict a player's finish placement? How well can we classify winners?</li>
@@ -90,7 +95,7 @@ permalink: /analysis/
           </ol>
           <p> We fit all models using five-fold cross validation and included all features except for the match ID and player ID, since neither feature is going to generalize for predicting new games, which is what we are interested in.  Additionally, since the win place percentage is a value between 0 and 1, we apply a log transformation (adding 1 to ensure all values are defined), so that it better fulfills the assumption that the outcome is a continuous variable on the real line. However, this still doesn't guarantee that the predicted values will be between 0 and 1, so we constrain the predicted value to be 0 if it is negative and 1 if it is above 1. </p>
           <img src = "../img/merged_model_plots.png" alt = "models" class="center" vspace = "50" width="10000">
-          <p> A visual inspection of plots of the predicted win place percentile versus the actual win place percentile suggests that the random forest model performs the best of the three models. In the random forest model, the spread of points is smaller for players that place lower (actual win place percentage approaches 0), indicating that we are able to predict the finish percentile more accurately for players that place lower in the random forest model in comparison to the models based on linear regression or elastic net regression. </p>
+          <p> A visual inspection of plots of the predicted win place percentile versus the actual win place percentile suggests that the random forest model performs the best of the three models. In the random forest model, the spread of points is smaller for players that place lower (actual win place percentage approaches 0), indicating that we are able to predict the finish percentile more accurately for players that place lower. </p>
 
           <h2>Comparing Model Performance </h2>
           <p> To quantitatively compare our three models, we used the following metrics on an independent validation set: </p>
@@ -111,7 +116,7 @@ permalink: /analysis/
           <p> Since elastic net regression accounts for correlation between features, we will primarily use its variable importance values to summarize our findings for ranking the importance of player characteristics and actions: </p>
           <ol>
             <li> The most important predictor is the number of kills a player makes. Elastic net regression chooses <code>kill_streaks</code> as the most predictive among the different features related to kills. What this suggests is that while some players may succeed with less confrontational playing strategies, you need to kill other players or you will be eliminated.</li>
-            <li> Among items used, <code>weapons_acquired</code> and boosts are the strongest predictors of outcome. This is interesting because one would expect that among the features related to item acquisition and usage, weapons would be the dominant predictor. However, the acquisition of weapons may plateau over time once you have strong weapons. On the other hand,  boosts enable increased health regeneration over time and have a small movement speed bonus when the amount of boosts consumed is beyond a particular threshold. Players tend to save boosts as an additional advantage in the later stages of the game when most players have powerful weapons. Consequently, the number of boosts consumed is also a strong indicator of a successful player. </li>
+            <li> Among items used, <code>weapons_acquired</code> and <code>boosts</code> are the strongest predictors of outcome. This is interesting because one would expect that among the features related to item acquisition and usage, weapons would be the dominant predictor. However, the acquisition of weapons may plateau over time once you have strong weapons. On the other hand,  boosts enable increased health regeneration over time and have a small movement speed bonus when the amount of boosts consumed is beyond a particular threshold. Players tend to save boosts as an additional advantage in the later stages of the game when most players have powerful weapons. Consequently, the number of boosts consumed is also a strong indicator of a successful player. </li>
           </ol>
         </div>
       </div>
