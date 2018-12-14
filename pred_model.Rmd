@@ -1,5 +1,5 @@
 ---
-title: "PUBG Prediction Model"
+title: "Predicting Players' Finish Placement in PlayerUnknown's Battleground"
 author: "Albert Kuo, Athena Chen"
 output: 
   html_document:
