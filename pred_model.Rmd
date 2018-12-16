@@ -462,7 +462,7 @@ predictions_solo = predictions_solo %>%
 predictions_solo %>%
   ggplot(aes(x = win_place_perc, y = lasso_pred)) +
   geom_point(alpha = 0.5, size = 0.1) +
-  labs(title = "Predicted Versus Actual Win Place Percentage (Lasso Regression)", 
+  labs(title = "Predicted Versus Actual Win Place Percentage (Elastic Net)", 
        x = "Actual Win Place Percentage", y = "Predicted Win Place Percentage") +
   theme_bw()
 ```
